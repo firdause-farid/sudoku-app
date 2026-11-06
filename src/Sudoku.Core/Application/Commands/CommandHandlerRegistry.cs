@@ -52,11 +52,6 @@ public sealed class CommandHandlerRegistry
         if (index == tokens.Length)
             return node.Handler;
 
-        Console.WriteLine($"Checking literals for token '{tokens[index]}':");
-        foreach (var kvp in node.Literals)
-        {
-            Console.WriteLine($"  - '{kvp.Key}'");
-        }
         // Literal routes take precedence over parameter routes. This keeps a command
         // such as "hint 2" from being interpreted as a cell-placement command.
         if (node.Literals.TryGetValue(tokens[index], out Node? literalNode))
