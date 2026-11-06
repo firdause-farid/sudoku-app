@@ -12,32 +12,39 @@ public sealed class SudokuSolutionCounter : ISudokuSolutionCounter
 
     public bool HasUniqueSolution(int?[,] grid)
     {
-        return CountSolutions(grid, UniquenessSolutionLimit) == UniqueSolutionCount;
+        return HasUniqueSolution(grid, SudokuDefinition.Classic);
     }
+
+    public bool HasUniqueSolution(int?[,] grid, SudokuDefinition definition) =>
+        CountSolutions(grid, UniquenessSolutionLimit, definition) == UniqueSolutionCount;
 
     public int CountSolutions(int?[,] grid, int limit = UniquenessSolutionLimit)
+        => CountSolutions(grid, limit, SudokuDefinition.Classic);
+
+    public int CountSolutions(int?[,] grid, int limit, SudokuDefinition definition)
     {
         ArgumentNullException.ThrowIfNull(grid);
+        ArgumentNullException.ThrowIfNull(definition);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
-        if (!SudokuConstraintChecker.IsValidGrid(grid))
+        if (!SudokuConstraintChecker.IsValidGrid(grid, definition))
             return 0;
 
-        return Count((int?[,])grid.Clone(), limit);
+        return Count((int?[,])grid.Clone(), limit, definition);
     }
 
-    private static int Count(int?[,] grid, int limit)
+    private static int Count(int?[,] grid, int limit, SudokuDefinition definition)
     {
         if (!SudokuGridSearch.TryFindEmpty(grid, out int row, out int column))
             return UniqueSolutionCount;
 
         int solutionCount = 0;
-        for (int value = SudokuRules.MinimumValue; value <= SudokuRules.MaximumValue; value++)
+        for (int value = 1; value <= definition.GridSize; value++)
         {
-            if (SudokuConstraintChecker.HasPlacementConflict(grid, row, column, value))
+            if (SudokuConstraintChecker.HasPlacementConflict(grid, row, column, value, definition))
                 continue;
 
             grid[row, column] = value;
-            solutionCount += Count(grid, limit);
+            solutionCount += Count(grid, limit, definition);
             grid[row, column] = null;
             if (solutionCount >= limit)
                 return solutionCount;

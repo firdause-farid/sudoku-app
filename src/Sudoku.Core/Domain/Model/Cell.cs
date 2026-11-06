@@ -5,13 +5,16 @@ namespace Sudoku.Core.Domain.Model;
 /// </summary>
 public sealed class Cell
 {
+    private readonly SudokuDefinition _definition;
+
     public int? Value { get; private set; }
     public bool IsPrefilled { get; }
 
-    public Cell(int? value, bool isPrefilled)
+    public Cell(int? value, bool isPrefilled, SudokuDefinition? definition = null)
     {
-        if (value is < SudokuRules.MinimumValue or > SudokuRules.MaximumValue)
-            throw new ArgumentOutOfRangeException(nameof(value), $"Cell value must be between {SudokuRules.MinimumValue} and {SudokuRules.MaximumValue} or null.");
+        _definition = definition ?? SudokuDefinition.Classic;
+        if (value is int number && !_definition.IsValueInRange(number))
+            throw new ArgumentOutOfRangeException(nameof(value), $"Cell value must be between 1 and {_definition.GridSize} or null.");
         if (isPrefilled && value is null)
             throw new ArgumentException("A prefilled cell must have a value.", nameof(value));
 
@@ -27,8 +30,8 @@ public sealed class Cell
         if (IsPrefilled)
             throw new InvalidOperationException("Cannot modify a pre-filled cell.");
 
-        if (value is < SudokuRules.MinimumValue or > SudokuRules.MaximumValue)
-            throw new ArgumentOutOfRangeException(nameof(value), $"Cell value must be between {SudokuRules.MinimumValue} and {SudokuRules.MaximumValue} or null.");
+        if (value is int number && !_definition.IsValueInRange(number))
+            throw new ArgumentOutOfRangeException(nameof(value), $"Cell value must be between 1 and {_definition.GridSize} or null.");
 
         Value = value;
     }

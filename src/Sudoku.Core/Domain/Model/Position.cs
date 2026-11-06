@@ -5,14 +5,10 @@ namespace Sudoku.Core.Domain.Model;
 /// </summary>
 public readonly record struct Position
 {
-    private const int TextLength = 2;
-
     public Position(int row, int column)
     {
-        if (row is < 0 or >= SudokuRules.GridSize)
-            throw new ArgumentOutOfRangeException(nameof(row), $"Row must be between 0 and {SudokuRules.GridSize - 1}.");
-        if (column is < 0 or >= SudokuRules.GridSize)
-            throw new ArgumentOutOfRangeException(nameof(column), $"Column must be between 0 and {SudokuRules.GridSize - 1}.");
+        ArgumentOutOfRangeException.ThrowIfNegative(row);
+        ArgumentOutOfRangeException.ThrowIfNegative(column);
 
         Row = row;
         Column = column;
@@ -27,45 +23,12 @@ public readonly record struct Position
     /// Parses text such as "B3" (row letter followed by column number), ignoring case and surrounding whitespace.
     /// </summary>
     public static bool TryParse(string? text, out Position position, out PositionParseError error)
+        => TryParse(text, SudokuDefinition.Classic, out position, out error);
+
+    public static bool TryParse(string? text, SudokuDefinition definition, out Position position, out PositionParseError error)
     {
-        position = default;
-
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            error = PositionParseError.Required;
-            return false;
-        }
-
-        string normalized = text.Trim().ToUpperInvariant();
-        if (normalized.Length < TextLength)
-        {
-            error = PositionParseError.InvalidFormat;
-            return false;
-        }
-
-        char rowChar = normalized[0];
-        if (rowChar < SudokuRules.FirstRowLabel || rowChar >= SudokuRules.FirstRowLabel + SudokuRules.GridSize)
-        {
-            error = PositionParseError.RowOutOfRange;
-            return false;
-        }
-
-        string columnText = normalized.Substring(1);
-        if (!int.TryParse(columnText, out int columnNumber))
-        {
-            error = PositionParseError.InvalidFormat;
-            return false;
-        }
-
-        if (columnNumber < SudokuRules.FirstColumnNumber || columnNumber > SudokuRules.GridSize)
-        {
-            error = PositionParseError.ColumnOutOfRange;
-            return false;
-        }
-
-        position = new Position(rowChar - SudokuRules.FirstRowLabel, columnNumber - SudokuRules.FirstColumnNumber);
-        error = PositionParseError.None;
-        return true;
+        ArgumentNullException.ThrowIfNull(definition);
+        return definition.TryParsePosition(text, out position, out error);
     }
 
     public override string ToString() => $"{RowLetter}{ColumnNumber}";

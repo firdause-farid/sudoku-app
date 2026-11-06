@@ -7,7 +7,7 @@ public interface IGridStyle
 {
     string ColumnHeaderPrefix { get; }
     string RowHeaderSeparator { get; }
-    string? HeaderSeparator { get; }
+    string? GetHeaderSeparator(int gridSize);
 
     string FormatColumnHeader(string text);
     string FormatRowHeader(string text);

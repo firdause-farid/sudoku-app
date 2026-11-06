@@ -1,6 +1,7 @@
 using Sudoku.Core.Domain.Model;
 using Sudoku.Core.Presentation.Messages;
 using Sudoku.Core.Presentation.Rendering;
+using Sudoku.Tests.Fakes;
 
 namespace Sudoku.Tests.Unit.Rendering;
 
@@ -47,7 +48,22 @@ public class GridRendererTests
         string rendered = new GridRenderer(new EnhancedGridStyle()).Render(grid);
 
         Assert.Contains($"    | \u001b[2m{UserMessages.GridHeader}\u001b[0m", rendered);
-        Assert.Contains(UserMessages.GridHeaderSeparator, rendered);
+        Assert.Contains("----+------------------", rendered);
         Assert.Contains("  \u001b[36mA\u001b[0m | \u001b[1m\u001b[93m5\u001b[0m 6", rendered);
     }
+
+    [Fact]
+    public void Render_UsesConfiguredGridSizeAndRowLabels()
+    {
+        SudokuDefinition definition = TestSudokuDefinitions.Mini6x6;
+        var grid = new Grid(definition);
+
+        string rendered = new GridRenderer(new PlainGridStyle()).Render(grid);
+
+        Assert.StartsWith("    1 2 3 4 5 6", rendered);
+        Assert.Contains("  A _ _ _ _ _ _", rendered);
+        Assert.Contains("  F _ _ _ _ _ _", rendered);
+        Assert.DoesNotContain("  G ", rendered);
+    }
+
 }

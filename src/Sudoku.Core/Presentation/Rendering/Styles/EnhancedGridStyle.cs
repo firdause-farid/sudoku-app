@@ -1,5 +1,3 @@
-using Sudoku.Core.Presentation.Messages;
-
 namespace Sudoku.Core.Presentation.Rendering;
 
 /// <summary>
@@ -15,7 +13,7 @@ public sealed class EnhancedGridStyle : IGridStyle
 
     public string ColumnHeaderPrefix => "    | ";
     public string RowHeaderSeparator => " | ";
-    public string? HeaderSeparator => UserMessages.GridHeaderSeparator;
+    public string? GetHeaderSeparator(int gridSize) => $"----+{new string('-', gridSize * 2)}";
 
     public string FormatColumnHeader(string text) => Style(text, Dim);
     public string FormatRowHeader(string text) => Style(text, Cyan);

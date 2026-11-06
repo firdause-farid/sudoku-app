@@ -1,3 +1,4 @@
+using Sudoku.Core.Domain.Model;
 using Sudoku.Core.Domain.Randomness;
 
 namespace Sudoku.Core.Domain.Generation;
@@ -8,4 +9,6 @@ namespace Sudoku.Core.Domain.Generation;
 public interface ISudokuSolutionGenerator
 {
     int[,] GenerateSolution(IRandomSource random);
+
+    int[,] GenerateSolution(IRandomSource random, SudokuDefinition definition) => GenerateSolution(random);
 }

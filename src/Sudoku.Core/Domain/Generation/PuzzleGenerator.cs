@@ -8,8 +8,6 @@ namespace Sudoku.Core.Domain.Generation;
 /// </summary>
 public sealed class PuzzleGenerator : IPuzzleGenerator
 {
-    private const int MinimumUniquePrefilledCells = 17;
-    private const int MaximumPlayablePrefilledCells = 80;
     private const int MaximumGenerationAttempts = 100;
     private readonly IRandomSource _random;
     private readonly ISudokuSolutionGenerator _solutionGenerator;
@@ -26,38 +24,43 @@ public sealed class PuzzleGenerator : IPuzzleGenerator
     }
 
     public (Grid Puzzle, int[,] Solution) Generate(int prefilledCount = PuzzleGenerationSettings.RequiredPrefilledCellCount)
+        => Generate(prefilledCount, SudokuDefinition.Classic);
+
+    public (Grid Puzzle, int[,] Solution) Generate(int prefilledCount, SudokuDefinition definition)
     {
-        if (prefilledCount < MinimumUniquePrefilledCells || prefilledCount > MaximumPlayablePrefilledCells)
-            throw new ArgumentOutOfRangeException(nameof(prefilledCount), $"Prefilled cells must be between {MinimumUniquePrefilledCells} and {MaximumPlayablePrefilledCells} for a playable, uniquely solvable Sudoku puzzle.");
+        ArgumentNullException.ThrowIfNull(definition);
+        int cellCount = definition.GridSize * definition.GridSize;
+        if (prefilledCount < definition.MinimumPrefilledCellCount || prefilledCount >= cellCount)
+            throw new ArgumentOutOfRangeException(nameof(prefilledCount), $"Prefilled cells for '{definition.Id}' must be between {definition.MinimumPrefilledCellCount} and {cellCount - 1}.");
 
         for (int attempt = 0; attempt < MaximumGenerationAttempts; attempt++)
         {
-            var generated = TryGenerate(prefilledCount);
+            var generated = TryGenerate(prefilledCount, definition);
             if (generated is not null)
                 return generated.Value;
         }
 
-        throw new InvalidOperationException($"Could not generate a uniquely solvable puzzle with exactly {prefilledCount} prefilled cells after {MaximumGenerationAttempts} attempts.");
+        throw new InvalidOperationException($"Could not generate a uniquely solvable '{definition.Id}' puzzle with exactly {prefilledCount} prefilled cells after {MaximumGenerationAttempts} attempts.");
     }
 
-    private (Grid Puzzle, int[,] Solution)? TryGenerate(int prefilledCount)
+    private (Grid Puzzle, int[,] Solution)? TryGenerate(int prefilledCount, SudokuDefinition definition)
     {
-        int[,] solution = _solutionGenerator.GenerateSolution(_random);
+        int[,] solution = _solutionGenerator.GenerateSolution(_random, definition);
 
-        var values = new int?[SudokuRules.GridSize, SudokuRules.GridSize];
-        var prefilledMask = new bool[SudokuRules.GridSize, SudokuRules.GridSize];
-        for (int r = 0; r < SudokuRules.GridSize; r++)
-            for (int c = 0; c < SudokuRules.GridSize; c++)
+        var values = new int?[definition.GridSize, definition.GridSize];
+        var prefilledMask = new bool[definition.GridSize, definition.GridSize];
+        for (int r = 0; r < definition.GridSize; r++)
+            for (int c = 0; c < definition.GridSize; c++)
             {
                 values[r, c] = solution[r, c];
                 prefilledMask[r, c] = true;
             }
 
-        int remainingPrefilledCount = SudokuRules.GridSize * SudokuRules.GridSize;
+        int remainingPrefilledCount = definition.GridSize * definition.GridSize;
 
         var positions = new List<(int r, int c)>();
-        for (int r = 0; r < SudokuRules.GridSize; r++)
-            for (int c = 0; c < SudokuRules.GridSize; c++)
+        for (int r = 0; r < definition.GridSize; r++)
+            for (int c = 0; c < definition.GridSize; c++)
                 positions.Add((r, c));
 
         _random.Shuffle(positions);
@@ -73,7 +76,7 @@ public sealed class PuzzleGenerator : IPuzzleGenerator
             prefilledMask[r, c] = false;
 
             // Keep removal only if puzzle stays uniquely solvable.
-            if (!_solutionCounter.HasUniqueSolution(values))
+            if (!_solutionCounter.HasUniqueSolution(values, definition))
             {
                 values[r, c] = saved;
                 prefilledMask[r, c] = true;
@@ -86,7 +89,7 @@ public sealed class PuzzleGenerator : IPuzzleGenerator
         if (remainingPrefilledCount != prefilledCount)
             return null;
 
-        var puzzle = Grid.FromArrays(values, prefilledMask);
+        var puzzle = Grid.FromArrays(values, prefilledMask, definition);
         return (puzzle, solution);
     }
 

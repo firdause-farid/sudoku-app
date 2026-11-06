@@ -134,6 +134,26 @@ public class PuzzleGeneratorTests
         }
     }
 
+    [Fact]
+    public void Generate_UsesConfiguredSixBySixDimensionsAndPrefilledCellCount()
+    {
+        SudokuDefinition definition = TestSudokuDefinitions.Mini6x6;
+        var generator = CreateGenerator(678);
+
+        var (puzzle, solution) = generator.Generate(18, definition);
+
+        Assert.Equal(definition, puzzle.Definition);
+        Assert.Equal(6, solution.GetLength(0));
+        Assert.Equal(6, solution.GetLength(1));
+        int prefilledCount = 0;
+        for (int row = 0; row < definition.GridSize; row++)
+            for (int column = 0; column < definition.GridSize; column++)
+                if (puzzle.IsPrefilled(new Position(row, column)))
+                    prefilledCount++;
+        Assert.Equal(18, prefilledCount);
+        Assert.True(new SudokuSolutionCounter().HasUniqueSolution(puzzle.ToValueArray(), definition));
+    }
+
     private sealed class RecordingSolutionCounter : ISudokuSolutionCounter
     {
         private readonly SudokuSolutionCounter _inner = new();

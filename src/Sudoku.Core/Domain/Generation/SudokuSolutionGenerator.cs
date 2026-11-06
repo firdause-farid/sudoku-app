@@ -9,35 +9,39 @@ namespace Sudoku.Core.Domain.Generation;
 public sealed class SudokuSolutionGenerator : ISudokuSolutionGenerator
 {
     public int[,] GenerateSolution(IRandomSource random)
+        => GenerateSolution(random, SudokuDefinition.Classic);
+
+    public int[,] GenerateSolution(IRandomSource random, SudokuDefinition definition)
     {
         ArgumentNullException.ThrowIfNull(random);
+        ArgumentNullException.ThrowIfNull(definition);
 
-        var grid = new int?[SudokuRules.GridSize, SudokuRules.GridSize];
-        if (!Fill(grid, random))
+        var grid = new int?[definition.GridSize, definition.GridSize];
+        if (!Fill(grid, random, definition))
             throw new InvalidOperationException("Could not generate a complete Sudoku solution.");
 
-        var solution = new int[SudokuRules.GridSize, SudokuRules.GridSize];
-        for (int row = 0; row < SudokuRules.GridSize; row++)
-            for (int column = 0; column < SudokuRules.GridSize; column++)
+        var solution = new int[definition.GridSize, definition.GridSize];
+        for (int row = 0; row < definition.GridSize; row++)
+            for (int column = 0; column < definition.GridSize; column++)
                 solution[row, column] = grid[row, column]!.Value;
 
         return solution;
     }
 
-    private static bool Fill(int?[,] grid, IRandomSource random)
+    private static bool Fill(int?[,] grid, IRandomSource random, SudokuDefinition definition)
     {
         if (!SudokuGridSearch.TryFindEmpty(grid, out int row, out int column))
             return true;
 
-        var numbers = Enumerable.Range(SudokuRules.MinimumValue, SudokuRules.MaximumValue).ToList();
+        var numbers = Enumerable.Range(1, definition.GridSize).ToList();
         random.Shuffle(numbers);
         foreach (int number in numbers)
         {
-            if (SudokuConstraintChecker.HasPlacementConflict(grid, row, column, number))
+            if (SudokuConstraintChecker.HasPlacementConflict(grid, row, column, number, definition))
                 continue;
 
             grid[row, column] = number;
-            if (Fill(grid, random))
+            if (Fill(grid, random, definition))
                 return true;
             grid[row, column] = null;
         }

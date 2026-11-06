@@ -1,0 +1,10 @@
+{
+  "id": "mini-6x6",
+  "gridSize": 6,
+  "subgridRows": 2,
+  "subgridColumns": 3,
+  "symbols": ["1", "2", "3", "4", "5", "6"],
+  "rowLabels": ["A", "B", "C", "D", "E", "F"],
+  "minimumPrefilledCellCount": 8,
+  "defaultPrefilledCellCount": 18
+}

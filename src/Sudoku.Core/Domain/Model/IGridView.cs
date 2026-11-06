@@ -5,6 +5,7 @@ namespace Sudoku.Core.Domain.Model;
 /// </summary>
 public interface IGridView
 {
+    SudokuDefinition Definition { get; }
     int? GetValue(Position position);
     bool IsPrefilled(Position position);
     bool IsComplete();

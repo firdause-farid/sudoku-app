@@ -1,5 +1,4 @@
 using Sudoku.Core.Application.Ports;
-using Sudoku.Core.Application.Runtime;
 using Sudoku.Core.Domain.Game;
 using Sudoku.Core.Presentation.Messages;
 
@@ -18,7 +17,8 @@ public sealed class HintCommandHandler(IConsole console) : ICommandHandler
         HintResult? hint = game.Hint();
         console.WriteLine(hint is null
             ? UserMessages.NoEmptyCellsToHint
-            : UserMessages.Hint(hint.Position.ToString(), hint.Value));
+            : UserMessages.Hint(game.GetGridView().Definition.FormatPosition(hint.Position),
+                game.GetGridView().Definition.FormatValue(hint.Value)));
         return true;
     }
 }

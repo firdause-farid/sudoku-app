@@ -1,0 +1,136 @@
+namespace Sudoku.Core.Domain.Model;
+
+/// <summary>Describes a classic Sudoku grid and its input/output symbols.</summary>
+public sealed class SudokuDefinition
+{
+    public static SudokuDefinition Classic { get; } = new(
+        "classic-9",
+        9,
+        3,
+        3,
+        ["1", "2", "3", "4", "5", "6", "7", "8", "9"],
+        ["A", "B", "C", "D", "E", "F", "G", "H", "I"],
+        17,
+        30);
+
+    public SudokuDefinition(
+        string id,
+        int gridSize,
+        int subgridRows,
+        int subgridColumns,
+        IReadOnlyList<string> symbols,
+        IReadOnlyList<string> rowLabels,
+        int minimumPrefilledCellCount,
+        int defaultPrefilledCellCount)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+            throw new ArgumentException("A definition ID is required.", nameof(id));
+        if (gridSize < 2)
+            throw new ArgumentOutOfRangeException(nameof(gridSize), "Grid size must be at least 2.");
+        if (subgridRows <= 0 || subgridColumns <= 0 || subgridRows * subgridColumns != gridSize)
+            throw new ArgumentException("Subgrid row count multiplied by subgrid column count must equal grid size.");
+        ArgumentNullException.ThrowIfNull(symbols);
+        ArgumentNullException.ThrowIfNull(rowLabels);
+        if (symbols.Count != gridSize || symbols.Any(string.IsNullOrWhiteSpace) ||
+            symbols.Distinct(StringComparer.OrdinalIgnoreCase).Count() != gridSize)
+            throw new ArgumentException("A definition must provide one unique, non-empty symbol per value.", nameof(symbols));
+        if (rowLabels.Count != gridSize || rowLabels.Any(string.IsNullOrWhiteSpace) ||
+            rowLabels.Distinct(StringComparer.OrdinalIgnoreCase).Count() != gridSize)
+            throw new ArgumentException("A definition must provide one unique, non-empty row label per row.", nameof(rowLabels));
+        if (minimumPrefilledCellCount is < 1 || minimumPrefilledCellCount >= gridSize * gridSize)
+            throw new ArgumentOutOfRangeException(nameof(minimumPrefilledCellCount));
+        if (defaultPrefilledCellCount < minimumPrefilledCellCount || defaultPrefilledCellCount >= gridSize * gridSize)
+            throw new ArgumentOutOfRangeException(nameof(defaultPrefilledCellCount));
+
+        Id = id;
+        GridSize = gridSize;
+        SubgridRows = subgridRows;
+        SubgridColumns = subgridColumns;
+        Symbols = Array.AsReadOnly(symbols.ToArray());
+        RowLabels = Array.AsReadOnly(rowLabels.ToArray());
+        MinimumPrefilledCellCount = minimumPrefilledCellCount;
+        DefaultPrefilledCellCount = defaultPrefilledCellCount;
+    }
+
+    public string Id { get; }
+    public int GridSize { get; }
+    public int SubgridRows { get; }
+    public int SubgridColumns { get; }
+    public IReadOnlyList<string> Symbols { get; }
+    public IReadOnlyList<string> RowLabels { get; }
+    public int MinimumPrefilledCellCount { get; }
+    public int DefaultPrefilledCellCount { get; }
+
+    public bool IsValueInRange(int value) => value >= 1 && value <= GridSize;
+
+    public string FormatValue(int value) => IsValueInRange(value)
+        ? Symbols[value - 1]
+        : throw new ArgumentOutOfRangeException(nameof(value));
+
+    public bool TryParseValue(string text, out int value)
+    {
+        int index = -1;
+        for (int i = 0; i < Symbols.Count; i++)
+            if (Symbols[i].Equals(text, StringComparison.OrdinalIgnoreCase))
+            {
+                index = i;
+                break;
+            }
+
+        value = index + 1;
+        return index >= 0;
+    }
+
+    public string FormatPosition(Position position)
+    {
+        EnsurePositionInRange(position);
+        return $"{RowLabels[position.Row]}{position.Column + 1}";
+    }
+
+    public bool TryParsePosition(string? text, out Position position, out PositionParseError error)
+    {
+        position = default;
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            error = PositionParseError.Required;
+            return false;
+        }
+
+        string normalized = text.Trim();
+        string? rowLabel = RowLabels
+            .OrderByDescending(label => label.Length)
+            .FirstOrDefault(label => normalized.StartsWith(label, StringComparison.OrdinalIgnoreCase));
+        if (rowLabel is null)
+        {
+            error = normalized.Any(char.IsDigit)
+                ? PositionParseError.RowOutOfRange
+                : PositionParseError.InvalidFormat;
+            return false;
+        }
+
+        string columnText = normalized[rowLabel.Length..];
+        if (!int.TryParse(columnText, out int columnNumber))
+        {
+            error = PositionParseError.InvalidFormat;
+            return false;
+        }
+        if (columnNumber < 1 || columnNumber > GridSize)
+        {
+            error = PositionParseError.ColumnOutOfRange;
+            return false;
+        }
+
+        int row = 0;
+        while (!RowLabels[row].Equals(rowLabel, StringComparison.OrdinalIgnoreCase))
+            row++;
+        position = new Position(row, columnNumber - 1);
+        error = PositionParseError.None;
+        return true;
+    }
+
+    public void EnsurePositionInRange(Position position)
+    {
+        if (position.Row >= GridSize || position.Column >= GridSize)
+            throw new ArgumentOutOfRangeException(nameof(position), "Position is outside this Sudoku grid.");
+    }
+}

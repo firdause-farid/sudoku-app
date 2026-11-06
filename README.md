@@ -1,6 +1,6 @@
 # Sudoku Console Game
 
-A command-line Sudoku game written in C# on .NET 8. It generates a puzzle with exactly 30 pre-filled numbers, lets you fill and clear cells, ask for hints, check your grid for rule violations, and tells you when you have solved it.
+A command-line Sudoku game written in C# on .NET 8. It generates uniquely solvable Sudoku puzzles, lets you fill and clear cells, ask for hints, check your grid for rule violations, and tells you when you have solved it.
 
 ## Environment
 
@@ -28,6 +28,14 @@ Optional styled grid (bold yellow prefilled cells, coloured headers, separator l
 dotnet run --project src/Sudoku.Console -- --ui-enhancements
 ```
 
+Choose a grid definition and prefilled-cell count at startup:
+
+```sh
+dotnet run --project src/Sudoku.Console -- --variant mini-6x6 --prefilled-cells 18
+```
+
+The built-in default is classic 9×9. Additional definitions are JSON files in `src/Sudoku.Console/Variants`. To add a size, add a JSON file with its grid size, subgrid dimensions, symbols, row labels, minimum prefilled-cell count, and default prefilled-cell count. The project copies all matching files to the output directory, so no application source changes are needed to add another definition. Use `--variant <id>` to select one and `--prefilled-cells <count>` to override its default.
+
 ## Run the tests
 
 ```sh
@@ -36,7 +44,7 @@ dotnet test Sudoku.sln
 
 ## How to play
 
-Rows are letters `A`–`I`, columns are numbers `1`–`9`. Empty cells are shown as `_`.
+Rows and symbols depend on the selected grid definition. Columns are numbered from 1, and empty cells are shown as `_`.
 
 ```
 Welcome to Sudoku!
@@ -55,22 +63,28 @@ Move accepted.
 
 | Command | What it does | Example |
 |---|---|---|
-| `<cell> <number>` | Put a number from 1 to 9 in a cell | `B3 7` |
+| `<cell> <symbol>` | Put a symbol from the selected definition in a cell | `B3 7` |
 | `<cell> clear` | Empty a cell you filled | `C5 clear` |
 | `hint` | Show one correct value for a random empty cell (it is not placed for you) | `hint` |
 | `check` | Report the first rule violation found, or confirm there are none | `check` |
-| `quit`, `exit` or `q` | Leave the game | `quit` |
+| `quit` | Leave the game | `quit` |
 
-Commands are not case-sensitive. Pre-filled cells cannot be changed, and numbers must be between 1 and 9. When the grid is completely and correctly filled you are told you have won and can press any key to start a new puzzle.
+Commands are not case-sensitive. Pre-filled cells cannot be changed, and symbols must belong to the selected definition. When the grid is completely and correctly filled you are told you have won and can press any key to start a new puzzle.
 
 ## Design in brief
 
 The project is split in two so the game rules do not depend on the terminal:
 
-- **`Sudoku.Core`** holds everything about the game: the grid model, validation, puzzle generation, command parsing, message text and grid rendering. It never calls `System.Console` directly.
-- **`Sudoku.Console`** is the runnable host. It supplies the real console adapter, random source, and file logger; the application loop and command handling are in Core's Application layer.
+- **`Sudoku.Core`** holds the grid model, validation, puzzle generation, command handlers, message text and grid rendering. Grid dimensions, subgrid shape, symbols, row labels, and default prefilled-cell counts come from a `SudokuDefinition`. Core never calls `System.Console` directly.
+- **`Sudoku.Console`** is the runnable host. It loads variant JSON files, selects the requested definition and prefilled-cell count, and supplies the real console adapter, random source, and file logger.
 
 Things Core needs from the outside world (reading and writing text, rendering, logging, randomness) are described as small interfaces, and `Program.cs` plugs in the real versions. In tests, fakes are plugged in instead, so a full game can be played without a keyboard.
+
+### Extension points
+
+- **Grid sizes and prefilled-cell defaults:** add a JSON definition under `src/Sudoku.Console/Variants`. Select it with `--variant <id>` and optionally override its default with `--prefilled-cells <count>`.
+- **Commands:** implement `ICommandHandler` with a route pattern, then register it in `Program.cs`. The route registry dispatches from the registered patterns.
+- **Grid appearance:** implement `IGridStyle` and select it when composing the renderer.
 
 ```
 src/
@@ -85,28 +99,28 @@ tests/
 
 ### How a puzzle is generated
 
-1. Build a complete valid grid by trying numbers in random order and backing up when stuck (randomised backtracking).
-2. Visit the 81 cells in random order and try removing each number.
+1. Build a complete valid grid by trying symbols in random order and backing up when stuck (randomised backtracking).
+2. Visit the grid cells in random order and try removing each value.
 3. Keep a removal only if the puzzle still has exactly one solution.
-4. Stop at 30 remaining numbers. If an attempt cannot reach 30 with a unique solution, start over (up to 100 attempts, then report an error rather than return the wrong number of clues).
+4. Stop at the requested prefilled-cell count. If an attempt cannot reach that count with a unique solution, start over (up to 100 attempts, then report an error rather than return a puzzle with the wrong number of prefilled cells).
 
 ### How validation works
 
-`check` scans every row, then every column, then every 3×3 box, and reports the first duplicate it finds. The game counts as finished only when every cell is filled **and** there are no duplicates.
+`check` scans every row, then every column, then every configured box, and reports the first duplicate it finds. The game counts as finished only when every cell is filled **and** there are no duplicates.
 
 ## Assumptions
 
-- This is standard 9×9 Sudoku.
-- The brief requires 30 pre-filled cells. I additionally decided every puzzle should have **one unique solution**, so a hint is never ambiguous and "correctly filled" has one meaning.
+- The default definition is standard 9×9 Sudoku with 30 prefilled cells. A 6×6 definition is included as an example of adding a grid through data.
+- Every generated puzzle has **one unique solution**, so a hint is never ambiguous and "correctly filled" has one meaning.
 - `hint` shows a value but does not place it, and only picks among empty cells.
-- `check` reports only the first violation, in the order row, column, 3×3 box.
-- The generator accepts 17–80 clues. The game always asks for 30; the range exists so the count could become a setting later. 17 is the known minimum for a unique 9×9 puzzle, and 80 keeps at least one cell empty.
+- `check` reports only the first violation, in the order row, column, then box.
+- Each definition sets a minimum prefilled-cell count and a default. The requested count must leave at least one cell empty; generation also checks uniqueness.
 - After a win, "press any key" starts a new puzzle. If input is redirected (piped), the game continues to read lines instead of waiting for a key, and ends when input ends.
 - Unexpected errors are written to `logs/exceptions.log` under the current working directory, and the player sees a short generic message. Run the app from the folder containing `Sudoku.sln` to keep the log beside the solution file; inspect it with `cat logs/exceptions.log`.
 
 ## Testing approach
 
-- **Unit tests** cover single classes: position and command parsing, cells and grid, validation, rendering, solution counting, game rules, logger.
+- **Unit tests** cover single classes: positions, definitions, cells and grids, validation, rendering, solution counting, command handlers, game rules, and logger.
 - **Integration tests** connect several classes: the generator with the solution counter, and the game loop with a fake console.
 - **End-to-end test** plays a whole game to completion through a fake console and checks that a new game starts.
 - Random numbers come from a seeded source in tests, so generated puzzles are repeatable.
@@ -119,7 +133,7 @@ The tests below are the ones that directly cover each requirement/example from t
 
 | Requirement / spec example | Covering test(s) |
 |---|---|
-| 30 pre-filled cells, rest empty (`_`) | `PuzzleGeneratorTests` (clue count); `GridRendererTests` |
+| 30 pre-filled cells, rest empty (`_`) | `PuzzleGeneratorTests` (prefilled-cell count); `GridRendererTests` |
 | Place number in a cell (`B3 7`) | `PlaceCommandHandlerTests`; `CommandHandlerRegistryTests`; `SudokuGameTests.Place_ValidMove_ReturnsAccepted` |
 | Clear a cell (`C5 clear`) | `ClearCommandHandlerTests`; `CommandHandlerRegistryTests`; `SudokuGameTests.Clear_UserFilled_ClearsCell` |
 | Hint reveals one correct value, not placed | `HintCommandHandlerTests`; `SudokuGameTests.Hint_ReturnsSolutionValueForEmptyCell` |

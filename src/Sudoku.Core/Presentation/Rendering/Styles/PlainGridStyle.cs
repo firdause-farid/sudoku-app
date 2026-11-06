@@ -7,7 +7,7 @@ public sealed class PlainGridStyle : IGridStyle
 {
     public string ColumnHeaderPrefix => "    ";
     public string RowHeaderSeparator => " ";
-    public string? HeaderSeparator => null;
+    public string? GetHeaderSeparator(int gridSize) => null;
 
     public string FormatColumnHeader(string text) => text;
     public string FormatRowHeader(string text) => text;

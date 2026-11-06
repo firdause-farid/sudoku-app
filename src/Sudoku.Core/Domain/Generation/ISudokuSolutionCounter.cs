@@ -1,3 +1,5 @@
+using Sudoku.Core.Domain.Model;
+
 namespace Sudoku.Core.Domain.Generation;
 
 /// <summary>
@@ -6,4 +8,6 @@ namespace Sudoku.Core.Domain.Generation;
 public interface ISudokuSolutionCounter
 {
     bool HasUniqueSolution(int?[,] grid);
+
+    bool HasUniqueSolution(int?[,] grid, SudokuDefinition definition) => HasUniqueSolution(grid);
 }

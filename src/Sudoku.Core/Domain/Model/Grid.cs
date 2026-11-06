@@ -1,81 +1,95 @@
 namespace Sudoku.Core.Domain.Model;
 
-/// <summary>
-/// A 9x9 Sudoku grid.
-/// </summary>
+/// <summary>A Sudoku grid whose dimensions and symbols come from its definition.</summary>
 public sealed class Grid : IGridView
 {
     private readonly Cell[,] _cells;
 
-    public Grid()
+    public Grid(SudokuDefinition? definition = null)
     {
-        _cells = new Cell[SudokuRules.GridSize, SudokuRules.GridSize];
-        for (int r = 0; r < SudokuRules.GridSize; r++)
-            for (int c = 0; c < SudokuRules.GridSize; c++)
-                _cells[r, c] = new Cell(null, false);
+        Definition = definition ?? SudokuDefinition.Classic;
+        _cells = new Cell[Definition.GridSize, Definition.GridSize];
+        for (int row = 0; row < Definition.GridSize; row++)
+            for (int column = 0; column < Definition.GridSize; column++)
+                _cells[row, column] = new Cell(null, false, Definition);
     }
 
-    private Grid(Cell[,] cells)
+    private Grid(Cell[,] cells, SudokuDefinition definition)
     {
         _cells = cells;
+        Definition = definition;
     }
 
-    public int? GetValue(Position position) => _cells[position.Row, position.Column].Value;
+    public SudokuDefinition Definition { get; }
 
-    public bool IsPrefilled(Position position) => _cells[position.Row, position.Column].IsPrefilled;
+    public int? GetValue(Position position)
+    {
+        Definition.EnsurePositionInRange(position);
+        return _cells[position.Row, position.Column].Value;
+    }
 
-    public void SetValue(Position position, int value) => _cells[position.Row, position.Column].SetValue(value);
+    public bool IsPrefilled(Position position)
+    {
+        Definition.EnsurePositionInRange(position);
+        return _cells[position.Row, position.Column].IsPrefilled;
+    }
 
-    public void Clear(Position position) => _cells[position.Row, position.Column].SetValue(null);
+    public void SetValue(Position position, int value)
+    {
+        Definition.EnsurePositionInRange(position);
+        _cells[position.Row, position.Column].SetValue(value);
+    }
+
+    public void Clear(Position position)
+    {
+        Definition.EnsurePositionInRange(position);
+        _cells[position.Row, position.Column].SetValue(null);
+    }
 
     public bool IsComplete()
     {
-        for (int r = 0; r < SudokuRules.GridSize; r++)
-            for (int c = 0; c < SudokuRules.GridSize; c++)
-                if (_cells[r, c].Value is null)
+        for (int row = 0; row < Definition.GridSize; row++)
+            for (int column = 0; column < Definition.GridSize; column++)
+                if (_cells[row, column].Value is null)
                     return false;
         return true;
     }
 
     public Grid Clone()
     {
-        var copy = new Cell[SudokuRules.GridSize, SudokuRules.GridSize];
-        for (int r = 0; r < SudokuRules.GridSize; r++)
-            for (int c = 0; c < SudokuRules.GridSize; c++)
-                copy[r, c] = new Cell(_cells[r, c].Value, _cells[r, c].IsPrefilled);
-        return new Grid(copy);
+        var copy = new Cell[Definition.GridSize, Definition.GridSize];
+        for (int row = 0; row < Definition.GridSize; row++)
+            for (int column = 0; column < Definition.GridSize; column++)
+                copy[row, column] = new Cell(_cells[row, column].Value, _cells[row, column].IsPrefilled, Definition);
+        return new Grid(copy, Definition);
     }
 
-    /// <summary>
-    /// Creates a grid from a value array and a prefilled-cell mask.
-    /// </summary>
-    public static Grid FromArrays(int?[,] values, bool[,] prefilledMask)
-    {
-        if (values.GetLength(0) != SudokuRules.GridSize || values.GetLength(1) != SudokuRules.GridSize)
-            throw new ArgumentException($"Values array must be {SudokuRules.GridSize}x{SudokuRules.GridSize}.");
-        if (prefilledMask.GetLength(0) != SudokuRules.GridSize || prefilledMask.GetLength(1) != SudokuRules.GridSize)
-            throw new ArgumentException($"Prefilled-cell mask must be {SudokuRules.GridSize}x{SudokuRules.GridSize}.");
+    public static Grid FromArrays(int?[,] values, bool[,] prefilledMask) =>
+        FromArrays(values, prefilledMask, SudokuDefinition.Classic);
 
-        var grid = new Grid();
-        for (int r = 0; r < SudokuRules.GridSize; r++)
-            for (int c = 0; c < SudokuRules.GridSize; c++)
-            {
-                // Rebuild cells to honour the prefilled-cell mask.
-                var cell = new Cell(values[r, c], prefilledMask[r, c]);
-                grid._cells[r, c] = cell;
-            }
+    public static Grid FromArrays(int?[,] values, bool[,] prefilledMask, SudokuDefinition definition)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+        ArgumentNullException.ThrowIfNull(prefilledMask);
+        ArgumentNullException.ThrowIfNull(definition);
+        if (values.GetLength(0) != definition.GridSize || values.GetLength(1) != definition.GridSize)
+            throw new ArgumentException($"Values array must be {definition.GridSize}x{definition.GridSize}.", nameof(values));
+        if (prefilledMask.GetLength(0) != definition.GridSize || prefilledMask.GetLength(1) != definition.GridSize)
+            throw new ArgumentException($"Prefilled-cell mask must be {definition.GridSize}x{definition.GridSize}.", nameof(prefilledMask));
+
+        var grid = new Grid(definition);
+        for (int row = 0; row < definition.GridSize; row++)
+            for (int column = 0; column < definition.GridSize; column++)
+                grid._cells[row, column] = new Cell(values[row, column], prefilledMask[row, column], definition);
         return grid;
     }
 
-    /// <summary>
-    /// Returns a copy of the underlying values.
-    /// </summary>
     public int?[,] ToValueArray()
     {
-        var result = new int?[SudokuRules.GridSize, SudokuRules.GridSize];
-        for (int r = 0; r < SudokuRules.GridSize; r++)
-            for (int c = 0; c < SudokuRules.GridSize; c++)
-                result[r, c] = _cells[r, c].Value;
+        var result = new int?[Definition.GridSize, Definition.GridSize];
+        for (int row = 0; row < Definition.GridSize; row++)
+            for (int column = 0; column < Definition.GridSize; column++)
+                result[row, column] = _cells[row, column].Value;
         return result;
     }
 }

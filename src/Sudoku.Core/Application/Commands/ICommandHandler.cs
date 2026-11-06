@@ -1,4 +1,3 @@
-using Sudoku.Core.Application.Runtime;
 using Sudoku.Core.Domain.Game;
 
 namespace Sudoku.Core.Application.Commands;

@@ -1,5 +1,4 @@
 using Sudoku.Core.Application.Ports;
-using Sudoku.Core.Application.Runtime;
 using Sudoku.Core.Domain.Game;
 using Sudoku.Core.Presentation.Messages;
 
@@ -11,7 +10,7 @@ public sealed class QuitCommandHandler(IConsole console) : ICommandHandler
 
     public bool TryHandle(string input, ISudokuGame game, out CommandAction action)
     {
-        if (input.Trim().Equals("quit", StringComparison.OrdinalIgnoreCase))
+        if (input.Trim().Equals(RoutePattern, StringComparison.OrdinalIgnoreCase))
         {
             console.WriteLine(UserMessages.ThanksForPlaying);
             action = CommandAction.Quit;

@@ -45,7 +45,7 @@ public sealed class SudokuGame : ISudokuGame
 
     public MoveResult Place(Position position, int number)
     {
-        if (number < SudokuRules.MinimumValue || number > SudokuRules.MaximumValue)
+        if (!_grid.Definition.IsValueInRange(number))
             return new MoveResult(MoveStatus.InvalidNumber);
 
         if (_grid.IsPrefilled(position))
@@ -81,8 +81,8 @@ public sealed class SudokuGame : ISudokuGame
     private List<Position> FindEmptyPositions()
     {
         var emptyPositions = new List<Position>();
-        for (int row = 0; row < SudokuRules.GridSize; row++)
-            for (int column = 0; column < SudokuRules.GridSize; column++)
+        for (int row = 0; row < _grid.Definition.GridSize; row++)
+            for (int column = 0; column < _grid.Definition.GridSize; column++)
             {
                 var position = new Position(row, column);
                 if (_grid.GetValue(position) is null)
@@ -94,17 +94,18 @@ public sealed class SudokuGame : ISudokuGame
 
     private static Grid BuildSolutionGrid(Grid puzzle, int[,] solution)
     {
-        if (solution.GetLength(0) != SudokuRules.GridSize || solution.GetLength(1) != SudokuRules.GridSize)
-            throw new ArgumentException($"Solution array must be {SudokuRules.GridSize}x{SudokuRules.GridSize}.", nameof(solution));
+        SudokuDefinition definition = puzzle.Definition;
+        if (solution.GetLength(0) != definition.GridSize || solution.GetLength(1) != definition.GridSize)
+            throw new ArgumentException($"Solution array must be {definition.GridSize}x{definition.GridSize}.", nameof(solution));
 
-        var solutionGrid = new Grid();
-        for (int row = 0; row < SudokuRules.GridSize; row++)
-            for (int column = 0; column < SudokuRules.GridSize; column++)
+        var solutionGrid = new Grid(definition);
+        for (int row = 0; row < definition.GridSize; row++)
+            for (int column = 0; column < definition.GridSize; column++)
             {
                 var position = new Position(row, column);
                 int value = solution[row, column];
-                if (value is < SudokuRules.MinimumValue or > SudokuRules.MaximumValue)
-                    throw new ArgumentException($"Solution values must be between {SudokuRules.MinimumValue} and {SudokuRules.MaximumValue}.", nameof(solution));
+                if (!definition.IsValueInRange(value))
+                    throw new ArgumentException($"Solution values must be between 1 and {definition.GridSize}.", nameof(solution));
                 if (puzzle.IsPrefilled(position) && puzzle.GetValue(position) != value)
                     throw new ArgumentException("Solution must match every pre-filled puzzle cell.", nameof(solution));
 
@@ -116,6 +117,8 @@ public sealed class SudokuGame : ISudokuGame
 
     private sealed class ReadOnlyGridView(Grid grid) : IGridView
     {
+        public SudokuDefinition Definition => grid.Definition;
+
         public int? GetValue(Position position) => grid.GetValue(position);
 
         public bool IsPrefilled(Position position) => grid.IsPrefilled(position);

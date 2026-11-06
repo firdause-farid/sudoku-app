@@ -1,70 +1,57 @@
 namespace Sudoku.Core.Domain.Model;
 
-/// <summary>
-/// Applies the shared row, column, and subgrid constraints used by validation and solving.
-/// </summary>
+/// <summary>Applies row, column, and rectangular-subgrid Sudoku constraints.</summary>
 internal static class SudokuConstraintChecker
 {
-    public static bool IsValidGrid(int?[,] values)
+    public static bool IsValidGrid(int?[,] values, SudokuDefinition definition)
     {
         ArgumentNullException.ThrowIfNull(values);
-        ValidateDimensions(values);
+        ValidateDimensions(values, definition);
 
-        for (int row = 0; row < SudokuRules.GridSize; row++)
-        {
-            for (int column = 0; column < SudokuRules.GridSize; column++)
-            {
-                if (values[row, column] is int value &&
-                    (value < SudokuRules.MinimumValue || value > SudokuRules.MaximumValue))
+        for (int row = 0; row < definition.GridSize; row++)
+            for (int column = 0; column < definition.GridSize; column++)
+                if (values[row, column] is int value && !definition.IsValueInRange(value))
                     return false;
-            }
-        }
 
-        for (int row = 0; row < SudokuRules.GridSize; row++)
-            if (TryFindDuplicateInRow(values, row, out _))
+        for (int row = 0; row < definition.GridSize; row++)
+            if (TryFindDuplicateInRow(values, row, definition, out _))
                 return false;
 
-        for (int column = 0; column < SudokuRules.GridSize; column++)
-            if (TryFindDuplicateInColumn(values, column, out _))
+        for (int column = 0; column < definition.GridSize; column++)
+            if (TryFindDuplicateInColumn(values, column, definition, out _))
                 return false;
 
-        for (int startRow = 0; startRow < SudokuRules.GridSize; startRow += SudokuRules.SubgridSize)
-            for (int startColumn = 0; startColumn < SudokuRules.GridSize; startColumn += SudokuRules.SubgridSize)
-                if (TryFindDuplicateInSubgrid(values, startRow, startColumn, out _))
+        for (int startRow = 0; startRow < definition.GridSize; startRow += definition.SubgridRows)
+            for (int startColumn = 0; startColumn < definition.GridSize; startColumn += definition.SubgridColumns)
+                if (TryFindDuplicateInSubgrid(values, startRow, startColumn, definition, out _))
                     return false;
 
         return true;
     }
 
-    public static bool HasPlacementConflict(int?[,] values, int row, int column, int value)
+    public static bool HasPlacementConflict(int?[,] values, int row, int column, int value, SudokuDefinition definition)
     {
-        int boxRow = row / SudokuRules.SubgridSize * SudokuRules.SubgridSize;
-        int boxColumn = column / SudokuRules.SubgridSize * SudokuRules.SubgridSize;
+        int subgridStartRow = row / definition.SubgridRows * definition.SubgridRows;
+        int subgridStartColumn = column / definition.SubgridColumns * definition.SubgridColumns;
 
-        return Contains(values, value, row, 0, 1, SudokuRules.GridSize, row, column)
-            || Contains(values, value, 0, column, SudokuRules.GridSize, 1, row, column)
-            || Contains(values, value, boxRow, boxColumn, SudokuRules.SubgridSize, SudokuRules.SubgridSize, row, column);
+        return Contains(values, value, row, 0, 1, definition.GridSize, row, column)
+            || Contains(values, value, 0, column, definition.GridSize, 1, row, column)
+            || Contains(values, value, subgridStartRow, subgridStartColumn, definition.SubgridRows, definition.SubgridColumns, row, column);
     }
 
-    public static bool TryFindDuplicateInRow(int?[,] values, int row, out int duplicate)
-    {
-        return TryFindDuplicate(values, row, 0, 1, SudokuRules.GridSize, out duplicate);
-    }
+    public static bool TryFindDuplicateInRow(int?[,] values, int row, SudokuDefinition definition, out int duplicate) =>
+        TryFindDuplicate(values, row, 0, 1, definition.GridSize, definition, out duplicate);
 
-    public static bool TryFindDuplicateInColumn(int?[,] values, int column, out int duplicate)
-    {
-        return TryFindDuplicate(values, 0, column, SudokuRules.GridSize, 1, out duplicate);
-    }
+    public static bool TryFindDuplicateInColumn(int?[,] values, int column, SudokuDefinition definition, out int duplicate) =>
+        TryFindDuplicate(values, 0, column, definition.GridSize, 1, definition, out duplicate);
 
-    public static bool TryFindDuplicateInSubgrid(int?[,] values, int startRow, int startColumn, out int duplicate)
-    {
-        return TryFindDuplicate(values, startRow, startColumn, SudokuRules.SubgridSize, SudokuRules.SubgridSize, out duplicate);
-    }
+    public static bool TryFindDuplicateInSubgrid(int?[,] values, int startRow, int startColumn, SudokuDefinition definition, out int duplicate) =>
+        TryFindDuplicate(values, startRow, startColumn, definition.SubgridRows, definition.SubgridColumns, definition, out duplicate);
 
-    private static void ValidateDimensions(int?[,] values)
+    private static void ValidateDimensions(int?[,] values, SudokuDefinition definition)
     {
-        if (values.GetLength(0) != SudokuRules.GridSize || values.GetLength(1) != SudokuRules.GridSize)
-            throw new ArgumentException($"Grid must be {SudokuRules.GridSize}x{SudokuRules.GridSize}.", nameof(values));
+        if (values.GetLength(0) != definition.GridSize || values.GetLength(1) != definition.GridSize)
+            throw new ArgumentException($"Grid must be {definition.GridSize}x{definition.GridSize}.", nameof(values));
     }
 
     private static bool Contains(
@@ -95,26 +82,25 @@ internal static class SudokuConstraintChecker
         int startColumn,
         int rowCount,
         int columnCount,
+        SudokuDefinition definition,
         out int duplicate)
     {
-        Span<bool> seen = stackalloc bool[SudokuRules.ValueLookupLength];
+        var seen = new bool[definition.GridSize + 1];
         for (int rowOffset = 0; rowOffset < rowCount; rowOffset++)
-        {
             for (int columnOffset = 0; columnOffset < columnCount; columnOffset++)
             {
                 int? value = values[startRow + rowOffset, startColumn + columnOffset];
                 if (value is not int number)
                     continue;
-
+                if (number < 1 || number > definition.GridSize)
+                    continue;
                 if (seen[number])
                 {
                     duplicate = number;
                     return true;
                 }
-
                 seen[number] = true;
             }
-        }
 
         duplicate = default;
         return false;
