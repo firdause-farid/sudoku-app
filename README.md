@@ -17,6 +17,8 @@ No external libraries are used for the game itself. The only packages are xUnit 
 From the folder that contains `Sudoku.sln`:
 
 ```sh
+dotnet restore Sudoku.sln
+dotnet build Sudoku.sln
 dotnet run --project src/Sudoku.Console
 ```
 
@@ -132,5 +134,38 @@ The tests below are the ones that directly cover each requirement/example from t
 | Puzzle has a unique solution | `SudokuSolutionCounterTests`; `PuzzleGeneratorTests` |
 | Grid rendering layout | `GridRendererTests` |
 | Exception logging on unexpected errors | `FileExceptionLoggerTests` |
+
+## Exception Handling and Logging
+
+The application includes exception handling to capture unexpected errors during execution and assist with troubleshooting.
+
+### Logging behaviour
+
+- Unexpected exceptions are caught by the application's exception-handling mechanism.
+- Exception details are written to `logs/exceptions.log`.
+- The log file provides information useful for diagnosing runtime issues.
+- Logging is handled separately from the core Sudoku game logic.
+
+### Log file location
+
+```text
+Sudoku/
+└── logs/
+    └── exceptions.log
+```
+
+The log directory and file are created when required by the logging implementation.
+
+### Example log entry
+
+```text
+[2026-11-06 12:00:00] ERROR
+Exception: InvalidOperationException
+Message: An unexpected error occurred.
+StackTrace: ...
+```
+
+**Note:** Log entries are intended for troubleshooting and development purposes. The application will provide a user-friendly error message rather than exposing internal exception details directly in the console.
+
 
 
