@@ -1,4 +1,4 @@
-namespace Sudoku.Core.Application.Runtime;
+namespace Sudoku.Core.Application.Commands;
 
 /// <summary>
 /// Tells the game loop what to do after a command has been handled.

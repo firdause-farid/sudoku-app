@@ -1,4 +1,6 @@
 using Sudoku.Core.Domain.Model;
+using Sudoku.Core.Application.Commands;
+using Sudoku.Core.Application.Commands.Handlers;
 using Sudoku.Core.Application.Runtime;
 using Sudoku.Core.Domain.Game;
 using Sudoku.Core.Domain.Generation;
@@ -31,7 +33,11 @@ public class GamePlaythroughTests
         var engine = new ConsoleGameRunner(
             console,
             gameFactory,
-            new ConsoleCommandHandler(console, renderer),
+            new ConsoleCommandHandler(console, renderer, new ICommandHandler[]
+            {
+                new HintCommandHandler(console), new CheckCommandHandler(console), new QuitCommandHandler(console),
+                new PlaceCommandHandler(console, renderer), new ClearCommandHandler(console, renderer)
+            }),
             new NullExceptionLogger());
         engine.Run();
 

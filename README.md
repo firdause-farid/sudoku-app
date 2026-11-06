@@ -120,11 +120,11 @@ The tests below are the ones that directly cover each requirement/example from t
 | Requirement / spec example | Covering test(s) |
 |---|---|
 | 30 pre-filled cells, rest empty (`_`) | `PuzzleGeneratorTests` (clue count); `GridRendererTests` |
-| Place number in a cell (`B3 7`) | `CommandParserTests.TryParse_PlaceText_ReturnsPositionAndNumber`; `SudokuGameTests.Place_ValidMove_ReturnsAccepted` |
-| Clear a cell (`C5 clear`) | `CommandParserTests.TryParse_ClearText_ReturnsPosition`; `SudokuGameTests.Clear_UserFilled_ClearsCell` |
-| Hint reveals one correct value, not placed | `CommandParserTests` (HintCommand); `SudokuGameTests.Hint_ReturnsSolutionValueForEmptyCell`; `ConsoleGameRunnerTests.Hint_PrintsExpectedFormatAndDoesNotPrintMoveAccepted` |
-| Check reports first violation or none | `SudokuValidatorTests` (Row/Column/Box duplicate); `ConsoleGameRunnerTests.Check_OnFreshPuzzle_PrintsNoViolations` |
-| Quit at any time | `CommandParserTests` (quit/exit/q); `ConsoleGameRunnerTests.Quit_PrintsThanksAndExits` |
+| Place number in a cell (`B3 7`) | `PlaceCommandHandlerTests`; `CommandHandlerRegistryTests`; `SudokuGameTests.Place_ValidMove_ReturnsAccepted` |
+| Clear a cell (`C5 clear`) | `ClearCommandHandlerTests`; `CommandHandlerRegistryTests`; `SudokuGameTests.Clear_UserFilled_ClearsCell` |
+| Hint reveals one correct value, not placed | `HintCommandHandlerTests`; `SudokuGameTests.Hint_ReturnsSolutionValueForEmptyCell` |
+| Check reports first violation or none | `CheckCommandHandlerTests`; `SudokuValidatorTests` (Row/Column/Box duplicate) |
+| Quit at any time | `QuitCommandHandlerTests`; `ConsoleGameRunnerTests.Quit_PrintsThanksAndExits` |
 | Cannot modify pre-filled cells | `SudokuGameTests.Place_OnPrefilledCell_ReturnsPrefilledCellStatus`; `ConsoleGameRunnerTests.Place_OnPrefilledCell_PrintsPrefilledMessage` |
 | Number must be 1–9 | `SudokuGameTests.Place_NumberOutsideRange_ReturnsInvalid`; `ConsoleGameRunnerTests.Place_NumberOutsideRange_PrintsInvalidNumberMessage` |
 | **Violation example 1** – "Number 3 already exists in Row A." | `SudokuValidatorTests.RowDuplicate_ReturnsStructuredIssue` |

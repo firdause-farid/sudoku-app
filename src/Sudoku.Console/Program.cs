@@ -1,4 +1,6 @@
 using Sudoku.Core.Application.Ports;
+using Sudoku.Core.Application.Commands;
+using Sudoku.Core.Application.Commands.Handlers;
 using Sudoku.Core.Application.Runtime;
 using Sudoku.Core.Domain.Game;
 using Sudoku.Core.Domain.Generation;
@@ -30,7 +32,14 @@ internal static class Program
             IRenderer renderer = uiEnhancements
                 ? new GridRenderer(new EnhancedGridStyle())
                 : new GridRenderer(new PlainGridStyle());
-            var commandHandler = new ConsoleCommandHandler(console, renderer);
+            var commandHandler = new ConsoleCommandHandler(console, renderer, new ICommandHandler[]
+            {
+                new HintCommandHandler(console),
+                new CheckCommandHandler(console),
+                new QuitCommandHandler(console),
+                new PlaceCommandHandler(console, renderer),
+                new ClearCommandHandler(console, renderer)
+            });
             var gameRunner = new ConsoleGameRunner(
                 console,
                 gameFactory,

@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Sudoku.Core.Application.Commands;
+using Sudoku.Core.Application.Commands.Handlers;
 using Sudoku.Core.Application.Ports;
 using Sudoku.Core.Domain.Model;
 using Sudoku.Core.Domain.Game;
@@ -280,23 +281,22 @@ public class ConsoleGameRunnerTests
     }
 
     [Theory]
-    [InlineData("J1 5", CommandParseError.RowOutOfRange)]
-    [InlineData("A0 5", CommandParseError.ColumnOutOfRange)]
-    [InlineData("AAA 5", CommandParseError.InvalidPositionFormat)]
-    public void InvalidPosition_PrintsSpecificFeedback(string input, CommandParseError error)
+    [InlineData("J1 5", "row")]
+    [InlineData("A0 5", "column")]
+    [InlineData("AAA 5", "format")]
+    public void InvalidPosition_PrintsSpecificFeedback(string input, string errorKind)
     {
         var console = new FakeConsole();
         console.Inputs.Enqueue(input);
         console.Inputs.Enqueue("quit");
         var runner = CreateRunner(console, seed: 16);
-        string message = error switch
+        string message = errorKind switch
         {
-            CommandParseError.RowOutOfRange => UserMessages.RowRange,
-            CommandParseError.ColumnOutOfRange => UserMessages.ColumnRange,
-            CommandParseError.InvalidPositionFormat => UserMessages.PositionFormat,
-            _ => throw new ArgumentOutOfRangeException(nameof(error), error, null)
+            "row" => UserMessages.RowRange,
+            "column" => UserMessages.ColumnRange,
+            "format" => UserMessages.PositionFormat,
+            _ => throw new ArgumentOutOfRangeException(nameof(errorKind), errorKind, null)
         };
-
         runner.Run();
 
         Assert.Contains(UserMessages.InvalidCommand(message), console.Outputs);
@@ -431,7 +431,11 @@ public class ConsoleGameRunnerTests
         return new ConsoleGameRunner(
             console,
             gameFactory ?? new SudokuGameFactory(actualGenerator, new SudokuValidator(), random),
-            new ConsoleCommandHandler(console, actualRenderer),
+            new ConsoleCommandHandler(console, actualRenderer, new ICommandHandler[]
+            {
+                new HintCommandHandler(console), new CheckCommandHandler(console), new QuitCommandHandler(console),
+                new PlaceCommandHandler(console, actualRenderer), new ClearCommandHandler(console, actualRenderer)
+            }),
             exceptionLogger ?? new NullExceptionLogger());
     }
 
