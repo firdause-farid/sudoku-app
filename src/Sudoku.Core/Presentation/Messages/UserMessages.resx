@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms</value>
+  </resheader>
+  <data name="Welcome" xml:space="preserve"><value>Welcome to Sudoku!</value></data>
+  <data name="PuzzleHeading" xml:space="preserve"><value>Here is your puzzle:</value></data>
+  <data name="CommandPrompt" xml:space="preserve"><value>Enter command (e.g., A3 4, C5 clear, hint, check, quit):</value></data>
+  <data name="CurrentGridHeader" xml:space="preserve"><value>Current grid:</value></data>
+  <data name="InvalidCommand" xml:space="preserve"><value>Invalid command. {0}</value></data>
+  <data name="CommandRequired" xml:space="preserve"><value>Please enter a command.</value></data>
+  <data name="PositionRequired" xml:space="preserve"><value>Position is required.</value></data>
+  <data name="PositionFormat" xml:space="preserve"><value>Position must be like A3 (row letter + column number).</value></data>
+  <data name="RowRange" xml:space="preserve"><value>Row must be between A and I.</value></data>
+  <data name="ColumnRange" xml:space="preserve"><value>Column must be between 1 and 9.</value></data>
+  <data name="UnrecognizedCommand" xml:space="preserve"><value>Unrecognized command. Use 'A3 4', 'C5 clear', 'hint', 'check', or 'quit'.</value></data>
+  <data name="InvalidMoveNumber" xml:space="preserve"><value>Invalid move. Number must be between 1 and 9.</value></data>
+  <data name="PrefilledCell" xml:space="preserve"><value>Invalid move. {0} is pre-filled.</value></data>
+  <data name="MoveAccepted" xml:space="preserve"><value>Move accepted.</value></data>
+  <data name="NoEmptyCellsToHint" xml:space="preserve"><value>No empty cells to hint.</value></data>
+  <data name="Hint" xml:space="preserve"><value>Hint: Cell {0} = {1}</value></data>
+  <data name="NoRuleViolations" xml:space="preserve"><value>No rule violations detected.</value></data>
+  <data name="DuplicateRow" xml:space="preserve"><value>Number {0} already exists in Row {1}.</value></data>
+  <data name="DuplicateColumn" xml:space="preserve"><value>Number {0} already exists in Column {1}.</value></data>
+  <data name="DuplicateSubgrid" xml:space="preserve"><value>Number {0} already exists in the same 3×3 subgrid.</value></data>
+  <data name="GameCompleted" xml:space="preserve"><value>You have successfully completed the Sudoku puzzle!</value></data>
+  <data name="ReplayPrompt" xml:space="preserve"><value>Press any key to play again...</value></data>
+  <data name="ThanksForPlaying" xml:space="preserve"><value>Thanks for playing!</value></data>
+  <data name="UnableToStartGame" xml:space="preserve"><value>Unable to start a new game. Please try again later.</value></data>
+  <data name="UnexpectedError" xml:space="preserve"><value>An unexpected error occurred. Details were written to the application log.</value></data>
+  <data name="GridHeader" xml:space="preserve"><value>1 2 3 4 5 6 7 8 9</value></data>
+  <data name="GridHeaderSeparator" xml:space="preserve"><value>----+------------------</value></data>
+  <data name="EmptyCell" xml:space="preserve"><value>_</value></data>
+</root>
