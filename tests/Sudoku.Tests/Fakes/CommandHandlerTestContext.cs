@@ -24,6 +24,9 @@ internal static class CommandHandlerTestContext
         return new SudokuGame(new Grid(), solution, new SudokuValidator(), new SeededRandomSource(1));
     }
 
+    public static IReadOnlyDictionary<string, string> Route(params (string Name, string Value)[] values) =>
+        values.ToDictionary(v => v.Name, v => v.Value, StringComparer.OrdinalIgnoreCase);
+
     public static IRenderer CreateRenderer() => new StubRenderer();
 
     private sealed class StubRenderer : IRenderer

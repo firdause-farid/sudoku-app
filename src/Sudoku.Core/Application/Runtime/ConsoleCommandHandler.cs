@@ -24,16 +24,15 @@ public sealed class ConsoleCommandHandler : IConsoleCommandHandler
 
     public CommandAction Handle(string input, ISudokuGame game)
     {
-        if (_handlerRegistry.TryFind(input, out ICommandHandler handler) &&
-            handler.TryHandle(input, game, out CommandAction action))
+        if (_handlerRegistry.TryFind(input, out ICommandHandler handler, out var routeValues))
         {
-            return action;
+            CommandAction action = handler.Handle(routeValues, game);
+            if (action != CommandAction.Unrecognized)
+                return action;
         }
 
-        _console.WriteLine(UserMessages.InvalidCommand(UserMessages.UnrecognizedCommand));
-        _console.WriteLine();
-        _console.WriteLine(UserMessages.CurrentGridHeader);
-        PrintGrid(game);
+        CommandOutput.WriteMessageWithGrid(
+            _console, _renderer, game, UserMessages.InvalidCommand(UserMessages.UnrecognizedCommand));
         return CommandAction.Continue;
     }
 

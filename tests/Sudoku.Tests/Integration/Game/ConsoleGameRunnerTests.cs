@@ -393,7 +393,7 @@ public class ConsoleGameRunnerTests
 
         runner.Run();
 
-        Assert.Contains(UserMessages.DuplicateSubgrid(duplicateValue), console.Outputs);
+        Assert.Contains(UserMessages.DuplicateSubgrid(duplicateValue.ToString(), 3, 3), console.Outputs);
     }
 
     private static (Grid Puzzle, int[,] Solution) CreatePuzzleWithSinglePrefilledCell(Position prefilledPosition)

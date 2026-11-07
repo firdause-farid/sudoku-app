@@ -5,6 +5,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Sudoku.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Include="Variants\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

@@ -83,7 +83,8 @@ Things Core needs from the outside world (reading and writing text, rendering, l
 ### Extension points
 
 - **Grid sizes and prefilled-cell defaults:** add a JSON definition under `src/Sudoku.Console/Variants`. Select it with `--variant <id>` and optionally override its default with `--prefilled-cells <count>`.
-- **Commands:** implement `ICommandHandler` with a route pattern, then register it in `Program.cs`. The route registry dispatches from the registered patterns.
+- **Commands:** implement `ICommandHandler` with a route pattern, then add it to `CreateCommandHandlers` in `Program.cs`. The route registry dispatches from the registered patterns (see *Command route guidelines*).
+- **Command-line options:** see *Adding a command-line option* below.
 - **Grid appearance:** implement `IGridStyle` and select it when composing the renderer.
 
 ```
@@ -107,6 +108,54 @@ tests/
 ### How validation works
 
 `check` scans every row, then every column, then every configured box, and reports the first duplicate it finds. The game counts as finished only when every cell is filled **and** there are no duplicates.
+
+### Adding a command-line option
+
+Start-up options are read in one place, `src/Sudoku.Console/Configuration/CommandLineOptionsParser.cs`, which turns the arguments into an immutable `GameOptions` record. `Program.cs` then builds the game from that record. The parser reports bad input as a message and exit code 2, never as an exception.
+
+To add an option, for example `--seed <number>`:
+
+1. **Add a property** to `GameOptions` (`Configuration/GameOptions.cs`), such as `int? Seed`.
+2. **Add the option name** as a constant in `CommandLineOptionsParser`, next to the existing ones, and list it in `FlagOptions` or `ValueOptions`.
+3. **Add one read step** in `TryParse`:
+   - a flag (no value) uses `ReadFlag`, as `--ui-enhancements` does;
+   - an option with a value uses `TryReadValue`, then a small private method that checks the value and returns a message if it is invalid, as `--prefilled-cells` does. Chain it into the `if` in `TryParse` with the others.
+   Pass the new value into the `GameOptions` created at the end of `TryParse`.
+4. **Add the error messages** to `UserMessages.resx` with a matching method in `UserMessages.cs`. Do not hard-code message text in the parser or `Program.cs`.
+5. **Use the value** in the matching `Create...` method in `Program.cs` (`CreateGameFactory`, `CreateRenderer` and so on), by reading it from `GameOptions`. `Main` itself should not need to change.
+6. **Add tests** in `tests/Sudoku.Tests/Unit/Configuration/CommandLineOptionsParserTests.cs`: the default when the option is absent, a valid value, an invalid value, and the option given without a value.
+7. **Document it** in the *Run the game* section above.
+
+Things to keep in mind:
+
+- An option that depends on another (for example the prefilled count depends on the chosen variant) must be validated after the one it depends on. Keep it in the same `if` chain so the order is clear.
+- Only read external resources when the option needs them. The variants folder is loaded only when `--variant` is given, so a plain `dotnet run` works without it.
+- An unknown or invalid value should stop the program with a message. It should not silently fall back to a default.
+- Register the new option's name in `FlagOptions` (no value) or `ValueOptions` (takes a value) in the parser. Unknown arguments, such as a typo like `--prefilled-cell`, and repeated options are rejected with exit code 2 before anything else is read, and this is what makes that check work.
+
+### Command route guidelines
+
+Each command handler declares a route pattern, such as `hint`, `{cell} clear` or `{cell} {number}`. Keep these guidelines in mind when adding one.
+
+**Writing the pattern**
+
+1. Words are separated by spaces. Extra spaces in the player's input do not matter, because input is split on whitespace.
+2. A plain word is a literal. It must match exactly, ignoring case, so `hint` matches `HINT`.
+3. `{name}` is a wildcard. It matches any single word and is captured under that name. It cannot hold spaces, so a value made of several words will not work.
+4. A route must match every word the player typed. `hint now` does not match `hint`, so extra words mean an unrecognised command.
+
+**What is rejected at startup**
+
+5. An empty pattern.
+6. A route with the same shape as an existing one. `{cell} clear` and `{player} clear` clash, so a route must differ from the others by at least one literal word.
+7. A parameter name used twice in one route. `{cell} {cell}` is rejected; use distinct names such as `{from} {to}`.
+8. Exact duplicates, such as two handlers both registering `hint`.
+
+**How matching behaves**
+
+9. Literals beat wildcards. If a word matches a literal at that position, that branch is taken even if a wildcard route would also fit, so `A1 clear` goes to clear and not to place.
+10. There is no fallback after a literal match. If `hint` and `{cell} {number}` are both registered, `hint 5` is an unrecognised command and is not treated as a cell.
+11. A leading wildcard matches any word, so `zzz 5` reaches the place handler. The handler must validate its own values. The clear handler prints its own invalid-cell message. The place handler does the same for a bad cell or an out-of-range number, and returns `CommandAction.Unrecognized` when the number is not a number at all (`A1 abc`), so the player gets the standard unrecognised-command message.
 
 ## Assumptions
 

@@ -42,14 +42,19 @@ public static class UserMessages
     public static string Hint(string position, string value) => Format(nameof(Hint), position, value);
     public static string DuplicateRow(int value, char row) => Format(nameof(DuplicateRow), value, row);
     public static string DuplicateColumn(int value, int column) => Format(nameof(DuplicateColumn), value, column);
-    public static string DuplicateSubgrid(int value) => Format(nameof(DuplicateSubgrid), value);
     public static string DuplicateRow(string value, string row) => Format(nameof(DuplicateRow), value, row);
     public static string DuplicateColumn(string value, int column) => Format(nameof(DuplicateColumn), value, column);
-    public static string DuplicateSubgrid(string value) => Format(nameof(DuplicateSubgrid), value);
     public static string DuplicateSubgrid(string value, int subgridRows, int subgridColumns) =>
-        subgridRows == 3 && subgridColumns == 3
-            ? Format(nameof(DuplicateSubgrid), value)
-            : Format("DuplicateSubgridOther", value, subgridRows, subgridColumns);
+        Format(nameof(DuplicateSubgrid), value, subgridRows, subgridColumns);
+    public static string OptionRequiresValue(string option) => Format(nameof(OptionRequiresValue), option);
+    public static string UnrecognizedArgument(string argument, string validOptions) =>
+        Format(nameof(UnrecognizedArgument), argument, validOptions);
+    public static string DuplicateOption(string option) => Format(nameof(DuplicateOption), option);
+    public static string UnknownVariant(string id, string available) => Format(nameof(UnknownVariant), id, available);
+    public static string PrefilledCellsNotWholeNumber(string option) => Format(nameof(PrefilledCellsNotWholeNumber), option);
+    public static string PrefilledCellsOutOfRange(string option, int minimum, int maximum, string variantId) =>
+        Format(nameof(PrefilledCellsOutOfRange), option, minimum, maximum, variantId);
+
     private static string Get(string key) =>
         ResourceManager.GetString(key, CultureInfo.CurrentUICulture)
         ?? throw new MissingManifestResourceException($"Missing user message resource '{key}'.");

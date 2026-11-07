@@ -9,28 +9,14 @@ namespace Sudoku.Tests.Unit.Commands;
 public class QuitCommandHandlerTests
 {
     [Fact]
-    public void TryHandle_Quit_ReturnsQuitAction()
+    public void Handle_Quit_ReturnsQuitAction()
     {
         var console = new FakeConsole();
         var handler = new QuitCommandHandler(console);
 
-        bool handled = handler.TryHandle("quit", CommandHandlerTestContext.CreateGame(), out CommandAction action);
+        CommandAction action = handler.Handle(CommandHandlerTestContext.Route(), CommandHandlerTestContext.CreateGame());
 
-        Assert.True(handled);
         Assert.Equal(CommandAction.Quit, action);
         Assert.Equal(UserMessages.ThanksForPlaying, Assert.Single(console.Outputs));
-    }
-
-    [Fact]
-    public void TryHandle_QuitWithExtraText_DeclinesIt()
-    {
-        var console = new FakeConsole();
-        var handler = new QuitCommandHandler(console);
-
-        bool handled = handler.TryHandle("quit now", CommandHandlerTestContext.CreateGame(), out CommandAction action);
-
-        Assert.False(handled);
-        Assert.Equal(CommandAction.Continue, action);
-        Assert.Empty(console.Outputs);
     }
 }

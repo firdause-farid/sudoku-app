@@ -10,12 +10,8 @@ public sealed class CheckCommandHandler(IConsole console) : ICommandHandler
 {
     public string RoutePattern => "check";
 
-    public bool TryHandle(string input, ISudokuGame game, out CommandAction action)
+    public CommandAction Handle(IReadOnlyDictionary<string, string> routeValues, ISudokuGame game)
     {
-        action = CommandAction.Continue;
-        if (!input.Trim().Equals(RoutePattern, StringComparison.OrdinalIgnoreCase))
-            return false;
-
         ValidationResult result = game.Check();
         if (result.IsValid)
             console.WriteLine(UserMessages.NoRuleViolations);
@@ -35,6 +31,6 @@ public sealed class CheckCommandHandler(IConsole console) : ICommandHandler
                 _ => throw new ArgumentOutOfRangeException(nameof(issue), issue.Type, "Unknown validation issue.")
             });
         }
-        return true;
+        return CommandAction.Continue;
     }
 }

@@ -7,5 +7,8 @@ public enum CommandAction
 {
     Continue,
     MoveAccepted,
-    Quit
+    Quit,
+
+    /// <summary>The input matched a route but is not a valid command (for example "A1 abc").</summary>
+    Unrecognized
 }

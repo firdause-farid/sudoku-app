@@ -1,3 +1,4 @@
+using System.Globalization;
 using Sudoku.Core.Application.Ports;
 using Sudoku.Core.Domain.Game;
 using Sudoku.Core.Domain.Model;
@@ -9,27 +10,24 @@ public sealed class PlaceCommandHandler(IConsole console, IRenderer renderer) : 
 {
     public string RoutePattern => "{cell} {number}";
 
-    public bool TryHandle(string input, ISudokuGame game, out CommandAction action)
+    public CommandAction Handle(IReadOnlyDictionary<string, string> routeValues, ISudokuGame game)
     {
-        action = CommandAction.Continue;
-        if (!CommandHandlerInput.TryGetParts(input, expectedPartCount: 2, out string[] parts))
-            return false;
-
         SudokuDefinition definition = game.GetGridView().Definition;
-        if (!definition.TryParseValue(parts[1], out int number))
+        string numberText = routeValues["number"];
+        if (!definition.TryParseValue(numberText, out int number))
         {
-            if (int.TryParse(parts[1], out _))
-            {
-                console.WriteLine(UserMessages.InvalidMoveNumberFor(definition.GridSize));
-                return true;
-            }
-            return false;
+            // A whole number outside the grid's range is a move error; anything else is not a command.
+            if (!int.TryParse(numberText, NumberStyles.Integer, CultureInfo.InvariantCulture, out _))
+                return CommandAction.Unrecognized;
+
+            console.WriteLine(UserMessages.InvalidMoveNumberFor(definition.GridSize));
+            return CommandAction.Continue;
         }
 
-        if (!CommandHandlerInput.TryGetPosition(parts[0], definition, out Position position, out string errorMessage))
+        if (!CommandHandlerInput.TryGetPosition(routeValues["cell"], definition, out Position position, out string errorMessage))
         {
             console.WriteLine(UserMessages.InvalidCommand(errorMessage));
-            return true;
+            return CommandAction.Continue;
         }
 
         MoveResult result = game.Place(position, number);
@@ -40,11 +38,7 @@ public sealed class PlaceCommandHandler(IConsole console, IRenderer renderer) : 
             MoveStatus.PrefilledCell => UserMessages.PrefilledCell(definition.FormatPosition(position)),
             _ => throw new ArgumentOutOfRangeException(nameof(result), result.Status, "Unknown move status.")
         };
-        console.WriteLine(message);
-        console.WriteLine();
-        console.WriteLine(UserMessages.CurrentGridHeader);
-        console.WriteLine(renderer.Render(game.GetGridView()));
-        action = result.Accepted ? CommandAction.MoveAccepted : CommandAction.Continue;
-        return true;
+        CommandOutput.WriteMessageWithGrid(console, renderer, game, message);
+        return result.Accepted ? CommandAction.MoveAccepted : CommandAction.Continue;
     }
 }

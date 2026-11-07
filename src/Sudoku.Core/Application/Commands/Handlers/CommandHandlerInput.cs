@@ -5,13 +5,6 @@ namespace Sudoku.Core.Application.Commands.Handlers;
 
 internal static class CommandHandlerInput
 {
-    public static bool TryGetParts(string input, int expectedPartCount, out string[] parts)
-    {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(expectedPartCount);
-        parts = input.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
-        return parts.Length == expectedPartCount;
-    }
-
     public static bool TryGetPosition(string input, SudokuDefinition definition, out Position position, out string errorMessage)
     {
         if (Position.TryParse(input, definition, out position, out PositionParseError error))

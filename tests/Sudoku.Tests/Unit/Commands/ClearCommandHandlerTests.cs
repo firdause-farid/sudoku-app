@@ -10,7 +10,7 @@ namespace Sudoku.Tests.Unit.Commands;
 public class ClearCommandHandlerTests
 {
     [Fact]
-    public void TryHandle_ValidCellAndClear_ClearsValue()
+    public void Handle_ValidCellAndClear_ClearsValue()
     {
         var console = new FakeConsole();
         var game = CommandHandlerTestContext.CreateGame();
@@ -18,9 +18,8 @@ public class ClearCommandHandlerTests
         game.Place(position, 5);
         var handler = new ClearCommandHandler(console, CommandHandlerTestContext.CreateRenderer());
 
-        bool handled = handler.TryHandle("A1 clear", game, out CommandAction action);
+        CommandAction action = handler.Handle(CommandHandlerTestContext.Route(("cell", "A1")), game);
 
-        Assert.True(handled);
         Assert.Equal(CommandAction.Continue, action);
         Assert.Null(game.GetGridView().GetValue(position));
         Assert.Contains("Move accepted.", console.Outputs);
@@ -28,15 +27,14 @@ public class ClearCommandHandlerTests
     }
 
     [Fact]
-    public void TryHandle_InvalidCellWithValidClear_ReportsCellError()
+    public void Handle_InvalidCellWithValidClear_ReportsCellError()
     {
         var console = new FakeConsole();
         var game = CommandHandlerTestContext.CreateGame();
         var handler = new ClearCommandHandler(console, CommandHandlerTestContext.CreateRenderer());
 
-        bool handled = handler.TryHandle("Z1 clear", game, out CommandAction action);
+        CommandAction action = handler.Handle(CommandHandlerTestContext.Route(("cell", "Z1")), game);
 
-        Assert.True(handled);
         Assert.Equal(CommandAction.Continue, action);
         Assert.Contains(UserMessages.InvalidCommand(UserMessages.RowRange), console.Outputs);
     }

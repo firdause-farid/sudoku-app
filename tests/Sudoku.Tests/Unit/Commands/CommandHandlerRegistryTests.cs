@@ -12,7 +12,7 @@ public class CommandHandlerRegistryTests
         var handler = new StubCommandHandler("new game now");
         var registry = new CommandHandlerRegistry([handler]);
 
-        Assert.True(registry.TryFind("new game now", out ICommandHandler found));
+        Assert.True(registry.TryFind("new game now", out ICommandHandler found, out _));
         Assert.Same(handler, found);
     }
 
@@ -23,11 +23,14 @@ public class CommandHandlerRegistryTests
         var clearHandler = new StubCommandHandler("{cell} clear");
         var registry = new CommandHandlerRegistry([placeHandler, clearHandler]);
 
-        Assert.True(registry.TryFind("C5 clear", out ICommandHandler clearFound));
+        Assert.True(registry.TryFind("C5 clear", out ICommandHandler clearFound, out var clearValues));
         Assert.Same(clearHandler, clearFound);
+        Assert.Equal("C5", clearValues["cell"]);
 
-        Assert.True(registry.TryFind("A2 7", out ICommandHandler placeFound));
+        Assert.True(registry.TryFind("A2 7", out ICommandHandler placeFound, out var placeValues));
         Assert.Same(placeHandler, placeFound);
+        Assert.Equal("A2", placeValues["cell"]);
+        Assert.Equal("7", placeValues["number"]);
     }
 
     [Fact]
@@ -35,7 +38,64 @@ public class CommandHandlerRegistryTests
     {
         var registry = new CommandHandlerRegistry([new StubCommandHandler("hint")]);
 
-        Assert.False(registry.TryFind("new game", out _));
+        Assert.False(registry.TryFind("new game", out _, out _));
+    }
+
+    [Fact]
+    public void TryFind_ExtraWords_ReturnsFalse()
+    {
+        var registry = new CommandHandlerRegistry(
+            [new StubCommandHandler("hint"), new StubCommandHandler("{cell} {number}"), new StubCommandHandler("{cell} clear")]);
+
+        Assert.False(registry.TryFind("hint now", out _, out _));
+        Assert.False(registry.TryFind("A1 clear now", out _, out _));
+        Assert.False(registry.TryFind("A1", out _, out _));
+    }
+
+    [Fact]
+    public void TryFind_IsCaseInsensitive()
+    {
+        var handler = new StubCommandHandler("{cell} clear");
+        var registry = new CommandHandlerRegistry([handler]);
+
+        Assert.True(registry.TryFind("a1 CLEAR", out ICommandHandler found, out _));
+        Assert.Same(handler, found);
+    }
+
+    [Fact]
+    public void TryFind_DifferentParameterNamesInSamePosition_EachRouteUsesItsOwnNames()
+    {
+        var clearHandler = new StubCommandHandler("{cell} clear");
+        var renameHandler = new StubCommandHandler("{player} rename {name}");
+        var registry = new CommandHandlerRegistry([clearHandler, renameHandler]);
+
+        Assert.True(registry.TryFind("B2 clear", out ICommandHandler clearFound, out var clearValues));
+        Assert.Same(clearHandler, clearFound);
+        Assert.Equal("B2", clearValues["cell"]);
+        Assert.False(clearValues.ContainsKey("player"));
+
+        Assert.True(registry.TryFind("sam rename Samuel", out ICommandHandler renameFound, out var renameValues));
+        Assert.Same(renameHandler, renameFound);
+        Assert.Equal("sam", renameValues["player"]);
+        Assert.Equal("Samuel", renameValues["name"]);
+    }
+
+    [Fact]
+    public void Constructor_SameShapeWithDifferentNames_Throws()
+    {
+        var handlers = new ICommandHandler[]
+        {
+            new StubCommandHandler("{cell} clear"),
+            new StubCommandHandler("{player} clear")
+        };
+
+        Assert.Throws<ArgumentException>(() => new CommandHandlerRegistry(handlers));
+    }
+
+    [Fact]
+    public void Constructor_RepeatedParameterName_Throws()
+    {
+        Assert.Throws<ArgumentException>(() => new CommandHandlerRegistry([new StubCommandHandler("{cell} {cell}")]));
     }
 
     [Fact]
@@ -54,10 +114,7 @@ public class CommandHandlerRegistryTests
     {
         public string RoutePattern { get; } = routePattern;
 
-        public bool TryHandle(string input, ISudokuGame game, out CommandAction action)
-        {
-            action = CommandAction.Continue;
-            return false;
-        }
+        public CommandAction Handle(IReadOnlyDictionary<string, string> routeValues, ISudokuGame game) =>
+            CommandAction.Continue;
     }
 }
