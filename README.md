@@ -47,7 +47,7 @@ Option names are not case-sensitive. Unknown options, repeated options, an optio
 |---|---|
 | `0` | The session ended normally, including after `quit` or end-of-input. |
 | `1` | A puzzle could not be generated, or an unhandled application error ended the run. Details are in `logs/exceptions.log`. |
-| `2` | The command-line options were invalid, or a variant file could not be read. The reason is printed on the error stream and nothing is logged. |
+| `2` | The command-line options were invalid, or the requested variant catalog was invalid or unreadable. The reason is printed on the error stream and nothing is logged. |
 
 ## Run the tests
 
@@ -82,7 +82,7 @@ Move accepted.
 | `check` | Report the first rule violation found, or confirm there are none | `check` |
 | `quit` | Leave the game | `quit` |
 
-Commands are not case-sensitive. Pre-filled cells cannot be changed, and symbols must belong to the selected definition. Anything else gets "Unrecognized command" and the current grid. When the grid is completely and correctly filled you are told you have won and can press any key to start a new puzzle.
+Commands are not case-sensitive. Pre-filled cells cannot be changed, and symbols must belong to the selected definition. Input that matches no command, including an unrecognized placement value, gets an "Unrecognized command" message and the current grid. A matched command with an invalid cell or an out-of-range numeric value gets a specific error message. When the grid is completely and correctly filled you are told you have won and can press any key to start a new puzzle.
 
 ## Design in brief
 
@@ -183,7 +183,7 @@ A variant is one JSON file in `src/Sudoku.Console/Variants`. The file name does 
 
 All fields are required, and the property names are not case-sensitive.
 
-**Rules the program checks.** A file that breaks one of these stops a `--variant` run before the game starts. The message names the file and the rule, it is printed on the error stream, and the exit code is 2:
+**Rules the program checks.** A definition that breaks one of these stops a `--variant` run before the game starts. The reason is printed on the error stream, and the exit code is 2. File-specific errors name the file; duplicate IDs name the duplicated ID.
 
 | Field | Rule |
 |---|---|
@@ -270,12 +270,14 @@ Player mistakes are normal feedback, not errors. Only unexpected exceptions are 
 
 | Situation | Logged | What the player sees |
 |---|---|---|
-| Unknown command, bad cell, number out of range, move on a prefilled cell | No | A short message and the current grid |
+| Input that matches no command | No | An "Unrecognized command" message and the current grid |
+| Invalid cell or out-of-range value | No | A specific error message |
+| Move on a prefilled cell | No | A short message and the current grid |
 | Invalid command-line options | No | The reason on the error stream; exit code 2 |
 | An unexpected exception while running a command | Yes ("Handling a player command") | "An unexpected error occurred. Details were written to the application log." The game continues. |
 | A puzzle cannot be generated (at the start or after a win) | Yes ("Starting a new game") | "Unable to start a new game. Please try again later." The game ends with exit code 1. |
 | A key cannot be read for the replay pause | Yes | Nothing. The game carries on without the pause. |
-| A variant file is broken (only read when `--variant` is given) | No | The file name and the reason on the error stream; exit code 2 |
+| A variant definition is invalid or unreadable (only loaded when `--variant` is given) | No | The reason on the error stream; file-specific errors name the file, duplicate IDs name the ID; exit code 2 |
 | Anything else outside command handling | Yes ("Unhandled application exception") | The generic message above on the error stream; exit code 1 |
 
 - **Where:** `logs/exceptions.log`, inside the folder the program was started from. The folder is created on first use, and `logs/` is excluded from source control. Inspect it with `cat logs/exceptions.log`.
@@ -289,7 +291,7 @@ System.InvalidOperationException: Demo
 ```
 
 - **Safe by design:** if the log file cannot be written (for example a read-only folder), the logger reports that on the error stream and carries on, so logging can never cause a second crash.
-- **Broken variant files:** the variants folder is read only when `--variant` is given. Every JSON file in it is read before the game starts, so one broken file stops that run even if the requested variant is valid. The error names the bad file, for example "Sudoku definition file 'bad.json' is not valid: …", and the run exits with code 2. A file or folder that cannot be read (for example a permission problem) is reported the same way, for example "Sudoku definition file 'x.json' could not be read: …". The default game does not read the variants folder.
+- **Variant definitions:** the variants folder is read only when `--variant` is given. Every JSON file in it is read before the game starts, so one invalid definition stops that run even if the requested variant is valid. File-specific errors name the file, for example "Sudoku definition file 'bad.json' is not valid: …"; duplicate IDs name the duplicated ID. A file or folder that cannot be read (for example a permission problem) is also reported on the error stream. These errors exit with code 2. The default game does not read the variants folder.
 
 ## Testing approach
 
