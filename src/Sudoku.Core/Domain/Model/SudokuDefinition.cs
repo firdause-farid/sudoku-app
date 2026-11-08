@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Sudoku.Core.Domain.Model;
 
 /// <summary>Describes a classic Sudoku grid and its input/output symbols.</summary>
@@ -120,14 +122,14 @@ public sealed class SudokuDefinition
             .FirstOrDefault(label => normalized.StartsWith(label, StringComparison.OrdinalIgnoreCase));
         if (rowLabel is null)
         {
-            error = normalized.Any(char.IsDigit)
+            error = normalized.Any(char.IsAsciiDigit)
                 ? PositionParseError.RowOutOfRange
                 : PositionParseError.InvalidFormat;
             return false;
         }
 
         string columnText = normalized[rowLabel.Length..];
-        if (!int.TryParse(columnText, out int columnNumber))
+        if (!int.TryParse(columnText, NumberStyles.None, CultureInfo.InvariantCulture, out int columnNumber))
         {
             error = PositionParseError.InvalidFormat;
             return false;

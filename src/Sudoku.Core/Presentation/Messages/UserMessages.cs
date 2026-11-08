@@ -11,6 +11,11 @@ public static class UserMessages
     private static readonly ResourceManager ResourceManager =
         new("Sudoku.Core.Presentation.Messages.UserMessages", typeof(UserMessages).Assembly);
 
+    // Resource keys for messages that are only available through the parameterised methods below.
+    private const string RowRangeKey = "RowRange";
+    private const string ColumnRangeKey = "ColumnRange";
+    private const string InvalidMoveNumberKey = "InvalidMoveNumber";
+
     public static string Welcome => Get(nameof(Welcome));
     public static string PuzzleHeading => Get(nameof(PuzzleHeading));
     public static string CommandPrompt => Get(nameof(CommandPrompt));
@@ -18,10 +23,7 @@ public static class UserMessages
     public static string CommandRequired => Get(nameof(CommandRequired));
     public static string PositionRequired => Get(nameof(PositionRequired));
     public static string PositionFormat => Get(nameof(PositionFormat));
-    public static string RowRange => RowRangeFor("A", "I");
-    public static string ColumnRange => ColumnRangeFor(9);
     public static string UnrecognizedCommand => Get(nameof(UnrecognizedCommand));
-    public static string InvalidMoveNumber => InvalidMoveNumberFor(9);
     public static string MoveAccepted => Get(nameof(MoveAccepted));
     public static string NoEmptyCellsToHint => Get(nameof(NoEmptyCellsToHint));
     public static string NoRuleViolations => Get(nameof(NoRuleViolations));
@@ -34,14 +36,11 @@ public static class UserMessages
     public static string EmptyCell => Get(nameof(EmptyCell));
 
     public static string InvalidCommand(string details) => Format(nameof(InvalidCommand), details);
-    public static string RowRangeFor(string first, string last) => Format(nameof(RowRange), first, last);
-    public static string ColumnRangeFor(int max) => Format(nameof(ColumnRange), max);
-    public static string InvalidMoveNumberFor(int max) => Format(nameof(InvalidMoveNumber), 1, max);
+    public static string RowRangeFor(string first, string last) => Format(RowRangeKey, first, last);
+    public static string ColumnRangeFor(int max) => Format(ColumnRangeKey, max);
+    public static string InvalidMoveNumberFor(int max) => Format(InvalidMoveNumberKey, 1, max);
     public static string PrefilledCell(string position) => Format(nameof(PrefilledCell), position);
-    public static string Hint(string position, int value) => Format(nameof(Hint), position, value);
     public static string Hint(string position, string value) => Format(nameof(Hint), position, value);
-    public static string DuplicateRow(int value, char row) => Format(nameof(DuplicateRow), value, row);
-    public static string DuplicateColumn(int value, int column) => Format(nameof(DuplicateColumn), value, column);
     public static string DuplicateRow(string value, string row) => Format(nameof(DuplicateRow), value, row);
     public static string DuplicateColumn(string value, int column) => Format(nameof(DuplicateColumn), value, column);
     public static string DuplicateSubgrid(string value, int subgridRows, int subgridColumns) =>

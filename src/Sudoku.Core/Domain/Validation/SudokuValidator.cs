@@ -10,46 +10,27 @@ public sealed class SudokuValidator : IValidator
     public ValidationResult Validate(IGridView grid)
     {
         ArgumentNullException.ThrowIfNull(grid);
-        int?[,] values = ToValueArray(grid);
 
-        // Rows
-        SudokuDefinition definition = grid.Definition;
-        for (int r = 0; r < definition.GridSize; r++)
-        {
-            if (SudokuConstraintChecker.TryFindDuplicateInRow(values, r, definition, out int duplicate))
-                return ValidationResult.Invalid(
-                    new ValidationIssue(ValidationIssueType.DuplicateRow, duplicate, r));
-        }
+        if (!SudokuConstraintChecker.TryFindFirstViolation(ToValueArray(grid), grid.Definition, out ConstraintViolation violation))
+            return ValidationResult.Valid();
 
-        // Columns
-        for (int c = 0; c < definition.GridSize; c++)
-        {
-            if (SudokuConstraintChecker.TryFindDuplicateInColumn(values, c, definition, out int duplicate))
-                return ValidationResult.Invalid(
-                    new ValidationIssue(ValidationIssueType.DuplicateColumn, duplicate, c));
-        }
-
-        // Subgrids
-        for (int subgridRowIndex = 0; subgridRowIndex < definition.GridSize / definition.SubgridRows; subgridRowIndex++)
-        {
-            for (int subgridColumnIndex = 0; subgridColumnIndex < definition.GridSize / definition.SubgridColumns; subgridColumnIndex++)
-            {
-                int startRow = subgridRowIndex * definition.SubgridRows;
-                int startColumn = subgridColumnIndex * definition.SubgridColumns;
-                if (SudokuConstraintChecker.TryFindDuplicateInSubgrid(values, startRow, startColumn, definition, out int duplicate))
-                    return ValidationResult.Invalid(
-                        new ValidationIssue(ValidationIssueType.DuplicateSubgrid, duplicate));
-            }
-        }
-
-        return ValidationResult.Valid();
+        return ValidationResult.Invalid(ToIssue(violation));
     }
+
+    private static ValidationIssue ToIssue(ConstraintViolation violation) => violation.Unit switch
+    {
+        ConstraintUnit.Row => new ValidationIssue(ValidationIssueType.DuplicateRow, violation.Value, violation.UnitIndex),
+        ConstraintUnit.Column => new ValidationIssue(ValidationIssueType.DuplicateColumn, violation.Value, violation.UnitIndex),
+        ConstraintUnit.Subgrid => new ValidationIssue(ValidationIssueType.DuplicateSubgrid, violation.Value),
+        _ => throw new ArgumentOutOfRangeException(nameof(violation), violation.Unit, "Unknown constraint unit.")
+    };
 
     private static int?[,] ToValueArray(IGridView grid)
     {
-        var values = new int?[grid.Definition.GridSize, grid.Definition.GridSize];
-        for (int row = 0; row < grid.Definition.GridSize; row++)
-            for (int column = 0; column < grid.Definition.GridSize; column++)
+        int size = grid.Definition.GridSize;
+        var values = new int?[size, size];
+        for (int row = 0; row < size; row++)
+            for (int column = 0; column < size; column++)
                 values[row, column] = grid.GetValue(new Position(row, column));
 
         return values;

@@ -36,6 +36,6 @@ public class ClearCommandHandlerTests
         CommandAction action = handler.Handle(CommandHandlerTestContext.Route(("cell", "Z1")), game);
 
         Assert.Equal(CommandAction.Continue, action);
-        Assert.Contains(UserMessages.InvalidCommand(UserMessages.RowRange), console.Outputs);
+        Assert.Contains(UserMessages.InvalidCommand(UserMessages.RowRangeFor("A", "I")), console.Outputs);
     }
 }

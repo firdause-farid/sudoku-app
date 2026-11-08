@@ -38,7 +38,7 @@ public class ConsoleGameRunnerTests
         var engine = CreateRunner(console, seed: 2);
         engine.Run();
 
-        string hintTemplate = UserMessages.Hint("__POSITION__", 999);
+        string hintTemplate = UserMessages.Hint("__POSITION__", "999");
         string hintPattern = "^" + Regex.Escape(hintTemplate)
             .Replace(Regex.Escape("__POSITION__"), @"(?<position>[A-I][1-9])")
             .Replace("999", @"(?<value>[1-9])") + "$";
@@ -47,7 +47,7 @@ public class ConsoleGameRunnerTests
         var hintMatch = Regex.Match(hintLine!, hintPattern);
         Assert.True(hintMatch.Success);
         Assert.Equal(
-            UserMessages.Hint(hintMatch.Groups["position"].Value, int.Parse(hintMatch.Groups["value"].Value)),
+            UserMessages.Hint(hintMatch.Groups["position"].Value, hintMatch.Groups["value"].Value),
             hintLine);
         Assert.DoesNotContain(UserMessages.MoveAccepted, console.Outputs);
     }
@@ -90,7 +90,7 @@ public class ConsoleGameRunnerTests
 
         runner.Run();
 
-        Assert.Contains(UserMessages.InvalidMoveNumber, console.Outputs);
+        Assert.Contains(UserMessages.InvalidMoveNumberFor(9), console.Outputs);
     }
 
     [Fact]
@@ -292,8 +292,8 @@ public class ConsoleGameRunnerTests
         var runner = CreateRunner(console, seed: 16);
         string message = errorKind switch
         {
-            "row" => UserMessages.RowRange,
-            "column" => UserMessages.ColumnRange,
+            "row" => UserMessages.RowRangeFor("A", "I"),
+            "column" => UserMessages.ColumnRangeFor(9),
             "format" => UserMessages.PositionFormat,
             _ => throw new ArgumentOutOfRangeException(nameof(errorKind), errorKind, null)
         };
@@ -375,7 +375,7 @@ public class ConsoleGameRunnerTests
 
         runner.Run();
 
-        Assert.Contains(UserMessages.DuplicateColumn(duplicateValue, targetPosition.Column + 1), console.Outputs);
+        Assert.Contains(UserMessages.DuplicateColumn(duplicateValue.ToString(), targetPosition.Column + 1), console.Outputs);
     }
 
     [Fact]

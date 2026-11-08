@@ -35,6 +35,9 @@ public class PositionTests
     [InlineData("1A", PositionParseError.RowOutOfRange)]
     [InlineData("A0", PositionParseError.ColumnOutOfRange)]
     [InlineData("A10", PositionParseError.ColumnOutOfRange)]
+    [InlineData("A+3", PositionParseError.InvalidFormat)]
+    [InlineData("A-1", PositionParseError.InvalidFormat)]
+    [InlineData("A３", PositionParseError.InvalidFormat)]
     public void TryParse_InvalidPosition_ReportsTypedError(string? text, PositionParseError expectedError)
     {
         bool parsed = Position.TryParse(text, SudokuDefinition.Classic, out _, out PositionParseError error);

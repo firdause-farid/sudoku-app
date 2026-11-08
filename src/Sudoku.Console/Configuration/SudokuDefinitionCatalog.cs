@@ -21,11 +21,9 @@ internal sealed class SudokuDefinitionCatalog
         if (!Directory.Exists(directory))
             return new SudokuDefinitionCatalog([]);
 
-        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         SudokuDefinition[] definitions = Directory.GetFiles(directory, "*.json")
             .Order(StringComparer.OrdinalIgnoreCase)
-            .Select(path => JsonSerializer.Deserialize<SudokuDefinition>(File.ReadAllText(path), options)
-                ?? throw new InvalidOperationException($"Could not read Sudoku definition file '{Path.GetFileName(path)}'."))
+            .Select(ReadDefinition)
             .ToArray();
 
         return new SudokuDefinitionCatalog(definitions);
@@ -35,4 +33,22 @@ internal sealed class SudokuDefinitionCatalog
         _definitions.TryGetValue(id, out definition!);
 
     public IEnumerable<string> Ids => _definitions.Keys.OrderBy(id => id, StringComparer.OrdinalIgnoreCase);
+
+    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
+
+    /// <summary>Reads one definition file, naming the file in the error so a bad file is easy to find.</summary>
+    private static SudokuDefinition ReadDefinition(string path)
+    {
+        string fileName = Path.GetFileName(path);
+        try
+        {
+            return JsonSerializer.Deserialize<SudokuDefinition>(File.ReadAllText(path), JsonOptions)
+                ?? throw new InvalidOperationException($"Sudoku definition file '{fileName}' is empty.");
+        }
+        catch (Exception exception) when (exception is JsonException or ArgumentException)
+        {
+            throw new InvalidOperationException(
+                $"Sudoku definition file '{fileName}' is not valid: {exception.Message}", exception);
+        }
+    }
 }

@@ -13,20 +13,41 @@ internal static class SudokuConstraintChecker
                 if (values[row, column] is int value && !definition.IsValueInRange(value))
                     return false;
 
+        return !TryFindFirstViolation(values, definition, out _);
+    }
+
+    /// <summary>
+    /// Looks for the first duplicate, checking every row, then every column, then every subgrid.
+    /// This is the single place that decides which rules apply and in which order.
+    /// </summary>
+    public static bool TryFindFirstViolation(int?[,] values, SudokuDefinition definition, out ConstraintViolation violation)
+    {
         for (int row = 0; row < definition.GridSize; row++)
-            if (TryFindDuplicateInRow(values, row, definition, out _))
-                return false;
+            if (TryFindDuplicate(values, row, 0, 1, definition.GridSize, definition, out int duplicate))
+            {
+                violation = new ConstraintViolation(ConstraintUnit.Row, row, duplicate);
+                return true;
+            }
 
         for (int column = 0; column < definition.GridSize; column++)
-            if (TryFindDuplicateInColumn(values, column, definition, out _))
-                return false;
+            if (TryFindDuplicate(values, 0, column, definition.GridSize, 1, definition, out int duplicate))
+            {
+                violation = new ConstraintViolation(ConstraintUnit.Column, column, duplicate);
+                return true;
+            }
 
+        int subgridsPerRow = definition.GridSize / definition.SubgridColumns;
         for (int startRow = 0; startRow < definition.GridSize; startRow += definition.SubgridRows)
             for (int startColumn = 0; startColumn < definition.GridSize; startColumn += definition.SubgridColumns)
-                if (TryFindDuplicateInSubgrid(values, startRow, startColumn, definition, out _))
-                    return false;
+                if (TryFindDuplicate(values, startRow, startColumn, definition.SubgridRows, definition.SubgridColumns, definition, out int duplicate))
+                {
+                    int subgridIndex = startRow / definition.SubgridRows * subgridsPerRow + startColumn / definition.SubgridColumns;
+                    violation = new ConstraintViolation(ConstraintUnit.Subgrid, subgridIndex, duplicate);
+                    return true;
+                }
 
-        return true;
+        violation = default;
+        return false;
     }
 
     public static bool HasPlacementConflict(int?[,] values, int row, int column, int value, SudokuDefinition definition)
@@ -38,15 +59,6 @@ internal static class SudokuConstraintChecker
             || Contains(values, value, 0, column, definition.GridSize, 1, row, column)
             || Contains(values, value, subgridStartRow, subgridStartColumn, definition.SubgridRows, definition.SubgridColumns, row, column);
     }
-
-    public static bool TryFindDuplicateInRow(int?[,] values, int row, SudokuDefinition definition, out int duplicate) =>
-        TryFindDuplicate(values, row, 0, 1, definition.GridSize, definition, out duplicate);
-
-    public static bool TryFindDuplicateInColumn(int?[,] values, int column, SudokuDefinition definition, out int duplicate) =>
-        TryFindDuplicate(values, 0, column, definition.GridSize, 1, definition, out duplicate);
-
-    public static bool TryFindDuplicateInSubgrid(int?[,] values, int startRow, int startColumn, SudokuDefinition definition, out int duplicate) =>
-        TryFindDuplicate(values, startRow, startColumn, definition.SubgridRows, definition.SubgridColumns, definition, out duplicate);
 
     private static void ValidateDimensions(int?[,] values, SudokuDefinition definition)
     {
