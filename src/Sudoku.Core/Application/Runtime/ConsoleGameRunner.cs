@@ -27,19 +27,33 @@ public sealed class ConsoleGameRunner
         _exceptionLogger = exceptionLogger ?? throw new ArgumentNullException(nameof(exceptionLogger));
     }
 
-    public void Run()
+    /// <returns>True if the session ended normally; false if the game could not be started.</returns>
+    public bool Run()
     {
         ISudokuGame? game = TryStartNewGame();
+        if (game is null)
+            return false;
 
         while (game is not null)
         {
             _console.WriteLine(UserMessages.CommandPrompt);
             string? line = _console.ReadLine();
             if (line is null)
-                return;
+                return true;
 
-            game = NextGameAfter(ExecuteSafely(line, game), game);
+            CommandAction action = ExecuteSafely(line, game);
+            if (action == CommandAction.Quit)
+                return true;
+
+            if (action == CommandAction.MoveAccepted && game.IsComplete())
+            {
+                game = CompleteGameAndReplay();
+                if (game is null)
+                    return false;
+            }
         }
+
+        return true;
     }
 
     /// <summary>Runs one command. An unexpected failure is logged and reported, and play continues.</summary>
@@ -55,18 +69,6 @@ public sealed class ConsoleGameRunner
             _console.WriteLine(UserMessages.UnexpectedError);
             return CommandAction.Continue;
         }
-    }
-
-    /// <summary>Returns the game to keep playing, a fresh game after a win, or null when the session should end.</summary>
-    private ISudokuGame? NextGameAfter(CommandAction action, ISudokuGame game)
-    {
-        if (action == CommandAction.Quit)
-            return null;
-
-        if (action == CommandAction.MoveAccepted && game.IsComplete())
-            return CompleteGameAndReplay();
-
-        return game;
     }
 
     private ISudokuGame? TryStartNewGame()

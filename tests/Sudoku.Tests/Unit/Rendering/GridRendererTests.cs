@@ -12,7 +12,7 @@ public class GridRendererTests
     public void Render_EmptyGrid_MatchesFormat()
     {
         var grid = new Grid(SudokuDefinition.Classic);
-        var expectedLines = new[] { $"    {UserMessages.GridHeader}" }
+        var expectedLines = new[] { "    1 2 3 4 5 6 7 8 9" }
             .Concat(Enumerable.Range(0, 9).Select(row =>
                 $"  {(char)('A' + row)} {string.Join(" ", Enumerable.Repeat(UserMessages.EmptyCell, 9))}"));
         var expected = string.Join(Environment.NewLine, expectedLines);
@@ -47,7 +47,7 @@ public class GridRendererTests
 
         string rendered = new GridRenderer(new EnhancedGridStyle()).Render(grid);
 
-        Assert.Contains($"    | \u001b[2m{UserMessages.GridHeader}\u001b[0m", rendered);
+        Assert.Contains($"    | \u001b[2m1 2 3 4 5 6 7 8 9\u001b[0m", rendered);
         Assert.Contains("----+------------------", rendered);
         Assert.Contains("  \u001b[36mA\u001b[0m | \u001b[1m\u001b[93m5\u001b[0m 6", rendered);
     }

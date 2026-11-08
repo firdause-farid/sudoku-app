@@ -22,19 +22,32 @@ dotnet build Sudoku.sln
 dotnet run --project src/Sudoku.Console
 ```
 
-Optional styled grid (bold yellow prefilled cells, coloured headers, separator line):
+With no options you get the standard 9×9 game with 30 prefilled cells. The `Variants` folder is not needed for this.
+
+### Options
+
+Options go after `--` so that `dotnet run` passes them to the game:
 
 ```sh
 dotnet run --project src/Sudoku.Console -- --ui-enhancements
-```
-
-Choose a grid definition and prefilled-cell count at startup:
-
-```sh
 dotnet run --project src/Sudoku.Console -- --variant mini-6x6 --prefilled-cells 18
 ```
 
-The built-in default is classic 9×9. Additional definitions are JSON files in `src/Sudoku.Console/Variants`. To add a size, add a JSON file with its grid size, subgrid dimensions, symbols, row labels, minimum prefilled-cell count, and default prefilled-cell count. The project copies all matching files to the output directory, so no application source changes are needed to add another definition. Use `--variant <id>` to select one and `--prefilled-cells <count>` to override its default. The rules for a definition file are listed under *Writing a variant file* below.
+| Option | What it does |
+|---|---|
+| `--ui-enhancements` | Styled grid: bold yellow prefilled cells, coloured headers, a separator line. Needs a terminal that understands ANSI colours. |
+| `--variant <id>` | Play a different grid definition from `src/Sudoku.Console/Variants` (for example `mini-6x6` or `classic-9`). |
+| `--prefilled-cells <count>` | Override the number of prefilled cells. Must be within the range allowed by the chosen variant. |
+
+Option names are not case-sensitive. Unknown options, repeated options, an option with no value and an invalid value are all rejected with a message, and the game does not start. Additional grid definitions are JSON files; see *Writing a variant file* below.
+
+### Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | The session ended normally, including after `quit` or end-of-input. |
+| `1` | A puzzle could not be generated, or an unhandled application error ended the run. Details are in `logs/exceptions.log`. |
+| `2` | The command-line options were invalid. The reason is printed and nothing is logged. |
 
 ## Run the tests
 
@@ -69,34 +82,52 @@ Move accepted.
 | `check` | Report the first rule violation found, or confirm there are none | `check` |
 | `quit` | Leave the game | `quit` |
 
-Commands are not case-sensitive. Pre-filled cells cannot be changed, and symbols must belong to the selected definition. When the grid is completely and correctly filled you are told you have won and can press any key to start a new puzzle.
+Commands are not case-sensitive. Pre-filled cells cannot be changed, and symbols must belong to the selected definition. Anything else gets "Unrecognized command" and the current grid. When the grid is completely and correctly filled you are told you have won and can press any key to start a new puzzle.
 
 ## Design in brief
 
 The project is split in two so the game rules do not depend on the terminal:
 
-- **`Sudoku.Core`** holds the grid model, validation, puzzle generation, command handlers, message text and grid rendering. Grid dimensions, subgrid shape, symbols, row labels, and default prefilled-cell counts come from a `SudokuDefinition`. Core never calls `System.Console` directly.
-- **`Sudoku.Console`** is the runnable host. It loads variant JSON files, selects the requested definition and prefilled-cell count, and supplies the real console adapter, random source, and file logger.
+- **`Sudoku.Core`** holds everything about the game: the grid model, validation, puzzle generation, the commands, the game loop, message text and grid rendering. Grid dimensions, subgrid shape, symbols, row labels and default prefilled-cell counts come from a `SudokuDefinition`. Core never calls `System.Console` directly.
+- **`Sudoku.Console`** is the runnable host. It reads the command-line options, loads variant JSON files, and supplies the real console, random source and file logger. `Program.cs` is the one place where the real implementations are chosen.
 
-Things Core needs from the outside world (reading and writing text, rendering, logging, randomness) are described as small interfaces, and `Program.cs` plugs in the real versions. In tests, fakes are plugged in instead, so a full game can be played without a keyboard.
-
-### Extension points
-
-- **Grid sizes and prefilled-cell defaults:** add a JSON definition under `src/Sudoku.Console/Variants`. Select it with `--variant <id>` and optionally override its default with `--prefilled-cells <count>`.
-- **Commands:** implement `ICommandHandler` with a route pattern, then add it to `CreateCommandHandlers` in `Program.cs`. The route registry dispatches from the registered patterns (see *Command route guidelines*).
-- **Command-line options:** see *Adding a command-line option* below.
-- **Grid appearance:** implement `IGridStyle` and select it when composing the renderer.
+Things Core needs from the outside world (reading and writing text, rendering, logging, randomness) are described as small interfaces ("ports"), and `Program.cs` plugs in the real versions. In tests, fakes are plugged in instead, so a full game can be played without a keyboard.
 
 ```
+Sudoku.sln
+Directory.Build.props         Settings shared by all projects
 src/
-  Sudoku.Core/
-    Application/   Command parsing, game orchestration, and the interfaces the application needs
-    Domain/        Grid model, game state, validation, puzzle generation
-    Presentation/  User-facing messages (.resx) and grid rendering
-  Sudoku.Console/  Program entry point, console adapter, random source, file logger
+  Sudoku.Core/                The game. No direct console access.
+    Application/
+      Commands/               ICommandHandler, the route registry, CommandAction
+        Handlers/             One handler per command: place, clear, hint, check, quit
+      Ports/                  What Core needs from outside: IConsole, IRenderer, IExceptionLogger
+      Runtime/                ConsoleGameRunner (the game loop) and CommandDispatcher
+    Domain/
+      Model/                  SudokuDefinition, Position, Grid, Cell, constraint checking
+      Game/                   SudokuGame, its factory, move and hint results
+      Generation/             Puzzle generator, solution generator, solution counter
+      Validation/             Validator and validation results
+      Randomness/             IRandomSource
+    Presentation/
+      Messages/               All player-facing text (UserMessages.resx)
+      Rendering/              GridRenderer and the grid styles
+  Sudoku.Console/             The program
+    Adapters/                 Real console and random source
+    Configuration/            Command-line parsing and the variant catalog
+    Logging/                  File exception logger
+    Variants/                 Grid definitions (JSON)
 tests/
-  Sudoku.Tests/    Unit, Integration and EndToEnd tests
+  Sudoku.Tests/               Unit, Integration and EndToEnd tests
 ```
+
+### What happens when you type a command
+
+1. `ConsoleGameRunner` reads the line and gives it to the `CommandDispatcher`.
+2. The dispatcher asks the `CommandHandlerRegistry` which handler matches the words typed. Matching is by the handler's route pattern (`hint`, `{cell} clear`, `{cell} {number}`).
+3. The matching handler runs. It validates its own values (cell, number), calls the game (`SudokuGame.Place`, `Clear`, `Hint` or `Check`), and prints the outcome. The game returns result objects; it never prints.
+4. If nothing matches, or the handler says the input is not a command, the dispatcher prints "Unrecognized command" and the grid.
+5. Back in the runner: a quit ends the session; an accepted move that completes the grid shows the win message and starts a new game.
 
 ### How a puzzle is generated
 
@@ -105,9 +136,31 @@ tests/
 3. Keep a removal only if the puzzle still has exactly one solution.
 4. Stop at the requested prefilled-cell count. If an attempt cannot reach that count with a unique solution, start over (up to 100 attempts, then report an error rather than return a puzzle with the wrong number of prefilled cells).
 
+The solution is kept by the game so that `hint` can show a correct value.
+
 ### How validation works
 
-`check` scans every row, then every column, then every configured box, and reports the first duplicate it finds. The game counts as finished only when every cell is filled **and** there are no duplicates.
+`check` scans every row, then every column, then every subgrid, and reports the first duplicate it finds. The game counts as finished only when every cell is filled **and** there are no duplicates. One method, `SudokuConstraintChecker.TryFindFirstViolation`, decides the rules and their order; both the validator and the solution counter use it.
+
+### Design principles in practice
+
+| Principle | Where it shows |
+|---|---|
+| Single responsibility | The registry routes, handlers execute, the game holds the rules, the validator validates, the renderer draws, the runner loops, the options parser parses, the logger logs. |
+| Open/closed | A new command is a handler plus one registration line in `Program.cs`; it does not require changes to existing handlers or the registry. A new grid size is a JSON file. A new look is an `IGridStyle` implementation. A new command-line option requires a `GameOptions` property and parser changes, then its consumer must use the new value. |
+| Liskov | The fake console and the real console are interchangeable behind `IConsole`; the same holds for the other ports. |
+| Interface segregation | Small interfaces. The renderer and validator receive `IGridView`, which is read-only. |
+| Dependency inversion | Core depends on interfaces. `Program.cs` chooses the concrete classes. |
+| DRY | One rule for the prefilled-cell range, one rule for value range, one scan for violations, one place for shared message output. |
+
+The code is layered with ports and adapters, but it is not strict Clean Architecture: the layers share one Core project, and application runtime classes use presentation messages and rendering abstractions.
+
+### Extension points
+
+- **Grid sizes and prefilled-cell defaults:** add a JSON definition. See *Writing a variant file*.
+- **Commands:** implement `ICommandHandler` with a route pattern, then add it to `CreateCommandHandlers` in `Program.cs`. See *Command route guidelines*.
+- **Command-line options:** see *Adding a command-line option*.
+- **Grid appearance:** implement `IGridStyle` and select it where the renderer is created (`CreateRenderer` in `Program.cs`).
 
 ### Writing a variant file
 
@@ -203,23 +256,49 @@ Each command handler declares a route pattern, such as `hint`, `{cell} clear` or
 - The default definition is standard 9×9 Sudoku with 30 prefilled cells. A 6×6 definition is included as an example of adding a grid through data.
 - Every generated puzzle has **one unique solution**, so a hint is never ambiguous and "correctly filled" has one meaning.
 - `hint` shows a value but does not place it, and only picks among empty cells.
-- `check` reports only the first violation, in the order row, column, then box.
+- `check` reports only the first violation, in the order row, column, then subgrid.
+- `quit` is the only quit command. There are no hidden aliases such as `exit` or `q`. The game also ends when its input ends (for example a piped file).
 - Each definition sets a minimum prefilled-cell count and a default. The requested count must leave at least one cell empty; generation also checks uniqueness.
 - After a win, "press any key" starts a new puzzle. If input is redirected (piped), the game continues to read lines instead of waiting for a key, and ends when input ends.
-- Unexpected errors are written to `logs/exceptions.log` under the current working directory, and the player sees a short generic message. Run the app from the folder containing `Sudoku.sln` to keep the log beside the solution file; inspect it with `cat logs/exceptions.log`.
+- The log is written under the current working directory (see *Exception handling and logging*). Run the app from the folder containing `Sudoku.sln` to keep the log beside the solution file.
+
+## Exception handling and logging
+
+Player mistakes are normal feedback, not errors. Only unexpected exceptions are logged.
+
+| Situation | Logged | What the player sees |
+|---|---|---|
+| Unknown command, bad cell, number out of range, move on a prefilled cell | No | A short message and the current grid |
+| Invalid command-line options | No | The reason on the error stream; exit code 2 |
+| An unexpected exception while running a command | Yes ("Handling a player command") | "An unexpected error occurred. Details were written to the application log." The game continues. |
+| A puzzle cannot be generated (at the start or after a win) | Yes ("Starting a new game") | "Unable to start a new game. Please try again later." The game ends with exit code 1. |
+| A key cannot be read for the replay pause | Yes | Nothing. The game carries on without the pause. |
+| Anything else outside command handling, such as a broken variant file while loading a requested variant | Yes ("Unhandled application exception") | The generic message above on the error stream; exit code 1 |
+
+- **Where:** `logs/exceptions.log`, inside the folder the program was started from. The folder is created on first use, and `logs/` is excluded from source control. Inspect it with `cat logs/exceptions.log`.
+- **Format:** each entry starts with a UTC timestamp and a short description of what the program was doing, followed by the full exception with its stack trace. New entries are appended.
+
+```text
+[2026-11-08T07:15:30.1234567+00:00] Handling a player command
+System.InvalidOperationException: Demo
+   at Sudoku.Core.Application.Commands.Handlers.HintCommandHandler.Handle(...)
+   ...
+```
+
+- **Safe by design:** if the log file cannot be written (for example a read-only folder), the logger reports that on the error stream and carries on, so logging can never cause a second crash.
+- **Broken variant files:** the variants catalog is loaded when `--variant` is supplied. It reads every JSON file before starting the game, so a broken file prevents that variant run from starting, even if the requested file itself is valid. The error names the bad file, for example "Sudoku definition file 'bad.json' is not valid: …", and the run exits with code 1. The default game does not load the variants folder.
 
 ## Testing approach
 
-- **Unit tests** cover single classes: positions, definitions, cells and grids, validation, rendering, solution counting, command handlers, game rules, and logger.
+- **Unit tests** cover single classes: positions, definitions, grids and cells, validation, rendering, solution counting, command handlers, the route registry, the options parser, the variant catalog, game rules and the logger.
 - **Integration tests** connect several classes: the generator with the solution counter, and the game loop with a fake console.
 - **End-to-end test** plays a whole game to completion through a fake console and checks that a new game starts.
 - Random numbers come from a seeded source in tests, so generated puzzles are repeatable.
-
-The code is layered with ports and adapters, but it is not strict Clean Architecture: the layers share one Core project, and application runtime classes use presentation messages and rendering abstractions.
+- The test project can see Core's and Console's internal types (`InternalsVisibleTo`), so small internal pieces such as `Cell` and the options parser are tested directly.
 
 ## Test traceability
 
-The tests below are the ones that directly cover each requirement/example from the problem statement. Run a subset with `dotnet test --filter "FullyQualifiedName~<MethodName>"`.
+The tests below are the ones that directly cover each requirement or example from the problem statement, plus the extensions. Run a subset with `dotnet test --filter "FullyQualifiedName~<MethodName>"`.
 
 | Requirement / spec example | Covering test(s) |
 |---|---|
@@ -230,46 +309,15 @@ The tests below are the ones that directly cover each requirement/example from t
 | Check reports first violation or none | `CheckCommandHandlerTests`; `SudokuValidatorTests` (Row/Column/Box duplicate) |
 | Quit at any time | `QuitCommandHandlerTests`; `ConsoleGameRunnerTests.Quit_PrintsThanksAndExits` |
 | Cannot modify pre-filled cells | `SudokuGameTests.Place_OnPrefilledCell_ReturnsPrefilledCellStatus`; `ConsoleGameRunnerTests.Place_OnPrefilledCell_PrintsPrefilledMessage` |
-| Number must be 1–9 | `SudokuGameTests.Place_NumberOutsideRange_ReturnsInvalid`; `ConsoleGameRunnerTests.Place_NumberOutsideRange_PrintsInvalidNumberMessage` |
+| Number must be in range (1–9 by default) | `SudokuGameTests.Place_NumberOutsideRange_ReturnsInvalid`; `ConsoleGameRunnerTests.Place_NumberOutsideRange_PrintsInvalidNumberMessage` |
 | **Violation example 1** – "Number 3 already exists in Row A." | `SudokuValidatorTests.RowDuplicate_ReturnsStructuredIssue` |
 | **Violation example 2** – "Number 5 already exists in Column 1." | `SudokuValidatorTests.ColumnDuplicate_ReturnsStructuredIssue` |
 | **Violation example 3** – "Number 8 already exists in the same 3×3 subgrid." | `SudokuValidatorTests.BoxDuplicate_ReturnsStructuredIssue` |
 | Full game completes and starts a new game | `GamePlaythroughTests` |
 | Puzzle has a unique solution | `SudokuSolutionCounterTests`; `PuzzleGeneratorTests` |
 | Grid rendering layout | `GridRendererTests` |
-| Exception logging on unexpected errors | `FileExceptionLoggerTests` |
-
-## Exception Handling and Logging
-
-The application includes exception handling to capture unexpected errors during execution and assist with troubleshooting.
-
-### Logging behaviour
-
-- Unexpected exceptions are caught by the application's exception-handling mechanism.
-- Exception details are written to `logs/exceptions.log`.
-- The log file provides information useful for diagnosing runtime issues.
-- Logging is handled separately from the core Sudoku game logic.
-
-### Log file location
-
-```text
-Sudoku/
-└── logs/
-    └── exceptions.log
-```
-
-The log directory and file are created when required by the logging implementation.
-
-### Example log entry
-
-```text
-[2026-11-06 12:00:00] ERROR
-Exception: InvalidOperationException
-Message: An unexpected error occurred.
-StackTrace: ...
-```
-
-**Note:** Log entries are intended for troubleshooting and development purposes. The application will provide a user-friendly error message rather than exposing internal exception details directly in the console.
-
-
-
+| Exception logging on unexpected errors | `FileExceptionLoggerTests`; `ConsoleGameRunnerTests` |
+| Command routing rules (literals first, wildcards, duplicates) | `CommandHandlerRegistryTests` |
+| Command-line options (defaults, unknown, repeated, ranges) | `CommandLineOptionsParserTests` |
+| Variant files (loading, rules, naming the bad file) | `SudokuDefinitionCatalogTests`; `SudokuDefinitionTests` |
+| A 6×6 puzzle generates with the right clue count and a unique solution | `PuzzleGeneratorTests.Generate_UsesConfiguredSixBySixDimensionsAndPrefilledCellCount` |

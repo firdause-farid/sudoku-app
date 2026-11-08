@@ -20,7 +20,6 @@ public static class UserMessages
     public static string PuzzleHeading => Get(nameof(PuzzleHeading));
     public static string CommandPrompt => Get(nameof(CommandPrompt));
     public static string CurrentGridHeader => Get(nameof(CurrentGridHeader));
-    public static string CommandRequired => Get(nameof(CommandRequired));
     public static string PositionRequired => Get(nameof(PositionRequired));
     public static string PositionFormat => Get(nameof(PositionFormat));
     public static string UnrecognizedCommand => Get(nameof(UnrecognizedCommand));
@@ -32,7 +31,6 @@ public static class UserMessages
     public static string ThanksForPlaying => Get(nameof(ThanksForPlaying));
     public static string UnableToStartGame => Get(nameof(UnableToStartGame));
     public static string UnexpectedError => Get(nameof(UnexpectedError));
-    public static string GridHeader => Get(nameof(GridHeader));
     public static string EmptyCell => Get(nameof(EmptyCell));
 
     public static string InvalidCommand(string details) => Format(nameof(InvalidCommand), details);

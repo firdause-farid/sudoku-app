@@ -1,9 +1,10 @@
 namespace Sudoku.Core.Domain.Model;
 
 /// <summary>
-/// A single Sudoku cell. Whether a value is allowed on a particular grid is checked by the grid, not the cell.
+/// A single Sudoku cell. This is an implementation detail of <see cref="Grid"/>, which is the only code that creates cells
+/// and the one that checks a value is allowed on its grid. Everything else sees cells through <see cref="IGridView"/>.
 /// </summary>
-public sealed class Cell
+internal sealed class Cell
 {
     public int? Value { get; private set; }
     public bool IsPrefilled { get; }

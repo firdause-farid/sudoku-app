@@ -16,8 +16,9 @@ namespace Sudoku.Console;
 
 internal static class Program
 {
+    private const int SuccessExitCode = 0;
     private const int InvalidArgumentsExitCode = 2;
-    private const int UnexpectedErrorExitCode = 1;
+    private const int ApplicationFailureExitCode = 1;
 
     private static int Main(string[] args)
     {
@@ -31,14 +32,15 @@ internal static class Program
                 return InvalidArgumentsExitCode;
             }
 
-            CreateGameRunner(options!, exceptionLogger).Run();
-            return 0;
+            return CreateGameRunner(options!, exceptionLogger).Run()
+                ? SuccessExitCode
+                : ApplicationFailureExitCode;
         }
         catch (Exception exception)
         {
             exceptionLogger.Log(exception, "Unhandled application exception");
             System.Console.Error.WriteLine(UserMessages.UnexpectedError);
-            return UnexpectedErrorExitCode;
+            return ApplicationFailureExitCode;
         }
     }
 
