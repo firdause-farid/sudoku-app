@@ -23,9 +23,20 @@ public class ConsoleGameRunnerTests
         console.Inputs.Enqueue("quit");
 
         var engine = CreateRunner(console, seed: 1);
-        engine.Run();
+        bool endedNormally = engine.Run();
 
+        Assert.True(endedNormally);
         Assert.Contains(UserMessages.ThanksForPlaying, string.Join("\n", console.Outputs));
+    }
+
+    [Fact]
+    public void Run_WhenInputEnds_EndsNormally()
+    {
+        var console = new FakeConsole();
+
+        bool endedNormally = CreateRunner(console, seed: 1).Run();
+
+        Assert.True(endedNormally);
     }
 
     [Fact]
@@ -161,8 +172,9 @@ public class ConsoleGameRunnerTests
         var logger = new RecordingExceptionLogger();
         var engine = CreateRunner(console, generator: new FailingPuzzleGenerator(), exceptionLogger: logger);
 
-        engine.Run();
+        bool endedNormally = engine.Run();
 
+        Assert.False(endedNormally);
         Assert.Contains(UserMessages.UnableToStartGame, console.Outputs);
         Assert.DoesNotContain(UserMessages.PuzzleHeading, console.Outputs);
         Assert.Single(logger.Exceptions);
@@ -176,8 +188,9 @@ public class ConsoleGameRunnerTests
         var logger = new RecordingExceptionLogger();
         var engine = CreateRunner(console, generator: new InvalidPuzzleGenerator(), exceptionLogger: logger);
 
-        engine.Run();
+        bool endedNormally = engine.Run();
 
+        Assert.False(endedNormally);
         Assert.Contains(UserMessages.UnableToStartGame, console.Outputs);
         Assert.DoesNotContain(UserMessages.PuzzleHeading, console.Outputs);
         Assert.Single(logger.Exceptions);
@@ -202,8 +215,9 @@ public class ConsoleGameRunnerTests
             generator: new FailAfterFirstPuzzleGenerator(CreateGenerator(seed)),
             exceptionLogger: logger);
 
-        engine.Run();
+        bool endedNormally = engine.Run();
 
+        Assert.False(endedNormally);
         Assert.Contains(UserMessages.GameCompleted, console.Outputs);
         Assert.Contains(UserMessages.UnableToStartGame, console.Outputs);
         Assert.Single(logger.Exceptions);

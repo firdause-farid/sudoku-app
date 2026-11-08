@@ -34,7 +34,7 @@ public sealed class ConsoleGameRunner
         if (game is null)
             return false;
 
-        while (game is not null)
+        while (true)
         {
             _console.WriteLine(UserMessages.CommandPrompt);
             string? line = _console.ReadLine();
@@ -52,8 +52,6 @@ public sealed class ConsoleGameRunner
                     return false;
             }
         }
-
-        return true;
     }
 
     /// <summary>Runs one command. An unexpected failure is logged and reported, and play continues.</summary>
