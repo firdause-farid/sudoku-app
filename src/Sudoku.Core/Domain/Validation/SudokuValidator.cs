@@ -11,7 +11,7 @@ public sealed class SudokuValidator : IValidator
     {
         ArgumentNullException.ThrowIfNull(grid);
 
-        if (!SudokuConstraintChecker.TryFindFirstViolation(ToValueArray(grid), grid.Definition, out ConstraintViolation violation))
+        if (!SudokuConstraintChecker.TryFindFirstViolation(grid.ToValueArray(), grid.Definition, out ConstraintViolation violation))
             return ValidationResult.Valid();
 
         return ValidationResult.Invalid(ToIssue(violation));
@@ -24,15 +24,4 @@ public sealed class SudokuValidator : IValidator
         ConstraintUnit.Subgrid => new ValidationIssue(ValidationIssueType.DuplicateSubgrid, violation.Value),
         _ => throw new ArgumentOutOfRangeException(nameof(violation), violation.Unit, "Unknown constraint unit.")
     };
-
-    private static int?[,] ToValueArray(IGridView grid)
-    {
-        int size = grid.Definition.GridSize;
-        var values = new int?[size, size];
-        for (int row = 0; row < size; row++)
-            for (int column = 0; column < size; column++)
-                values[row, column] = grid.GetValue(new Position(row, column));
-
-        return values;
-    }
 }

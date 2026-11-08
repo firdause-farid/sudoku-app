@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Sudoku.Core.Domain.Model;
 using Sudoku.Core.Presentation.Messages;
@@ -17,7 +18,7 @@ internal sealed class CommandLineOptionsParser(Func<SudokuDefinitionCatalog> loa
     private static readonly string[] FlagOptions = [UiEnhancementsOption];
     private static readonly string[] ValueOptions = [VariantOption, PrefilledCellsOption];
 
-    public bool TryParse(string[] args, out GameOptions? options, out string error)
+    public bool TryParse(string[] args, [NotNullWhen(true)] out GameOptions? options, out string error)
     {
         options = null;
 
@@ -75,7 +76,12 @@ internal sealed class CommandLineOptionsParser(Func<SudokuDefinitionCatalog> loa
         }
 
         // The catalog is only read when a variant is requested, so the default run needs no Variants folder.
-        SudokuDefinitionCatalog catalog = loadCatalog();
+        if (!TryLoadCatalog(out SudokuDefinitionCatalog? catalog, out error))
+        {
+            definition = null;
+            return false;
+        }
+
         if (catalog.TryGet(variantId, out SudokuDefinition found))
         {
             definition = found;
@@ -85,6 +91,23 @@ internal sealed class CommandLineOptionsParser(Func<SudokuDefinitionCatalog> loa
         definition = null;
         error = UserMessages.UnknownVariant(variantId, string.Join(", ", catalog.Ids));
         return false;
+    }
+
+    /// <summary>A broken variant file is reported to the player with its file name instead of as a crash.</summary>
+    private bool TryLoadCatalog([NotNullWhen(true)] out SudokuDefinitionCatalog? catalog, out string error)
+    {
+        try
+        {
+            catalog = loadCatalog();
+            error = string.Empty;
+            return true;
+        }
+        catch (InvalidOperationException exception)
+        {
+            catalog = null;
+            error = exception.Message;
+            return false;
+        }
     }
 
     private static bool TryResolvePrefilledCellCount(

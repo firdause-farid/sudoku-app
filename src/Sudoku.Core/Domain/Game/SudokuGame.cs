@@ -1,6 +1,7 @@
 using Sudoku.Core.Domain.Model;
 using Sudoku.Core.Domain.Randomness;
 using Sudoku.Core.Domain.Validation;
+using Sudoku.Core.Domain.Game.Results;
 
 namespace Sudoku.Core.Domain.Game;
 

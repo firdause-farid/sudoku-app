@@ -1,4 +1,4 @@
-namespace Sudoku.Core.Presentation.Rendering;
+namespace Sudoku.Core.Presentation.Rendering.Styles;
 
 /// <summary>
 /// Formats a grid without terminal styling or structural separators.

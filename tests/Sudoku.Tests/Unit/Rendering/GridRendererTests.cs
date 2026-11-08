@@ -1,6 +1,7 @@
 using Sudoku.Core.Domain.Model;
 using Sudoku.Core.Presentation.Messages;
 using Sudoku.Core.Presentation.Rendering;
+using Sudoku.Core.Presentation.Rendering.Styles;
 using Sudoku.Tests.Fakes;
 
 namespace Sudoku.Tests.Unit.Rendering;

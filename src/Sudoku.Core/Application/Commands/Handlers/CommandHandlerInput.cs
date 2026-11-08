@@ -11,7 +11,7 @@ internal static class CommandHandlerInput
 
     public static bool TryGetPosition(string input, SudokuDefinition definition, out Position position, out string errorMessage)
     {
-        if (Position.TryParse(input, definition, out position, out PositionParseError error))
+        if (definition.TryParsePosition(input, out position, out PositionParseError error))
         {
             errorMessage = string.Empty;
             return true;

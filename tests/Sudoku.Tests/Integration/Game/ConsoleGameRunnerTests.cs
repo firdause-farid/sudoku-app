@@ -4,11 +4,13 @@ using Sudoku.Core.Application.Commands.Handlers;
 using Sudoku.Core.Application.Ports;
 using Sudoku.Core.Domain.Model;
 using Sudoku.Core.Domain.Game;
+using Sudoku.Core.Domain.Game.Results;
 using Sudoku.Core.Application.Runtime;
 using Sudoku.Core.Domain.Generation;
 using Sudoku.Core.Domain.Validation;
 using Sudoku.Core.Presentation.Messages;
 using Sudoku.Core.Presentation.Rendering;
+using Sudoku.Core.Presentation.Rendering.Styles;
 using Sudoku.Tests.Fakes;
 
 namespace Sudoku.Tests.Integration.Game;

@@ -18,15 +18,30 @@ internal sealed class SudokuDefinitionCatalog
 
     public static SudokuDefinitionCatalog Load(string directory)
     {
-        if (!Directory.Exists(directory))
-            return new SudokuDefinitionCatalog([]);
+        return new SudokuDefinitionCatalog(ReadDefinitions(directory));
+    }
 
-        SudokuDefinition[] definitions = Directory.GetFiles(directory, "*.json")
-            .Order(StringComparer.OrdinalIgnoreCase)
-            .Select(ReadDefinition)
-            .ToArray();
-
-        return new SudokuDefinitionCatalog(definitions);
+    private static SudokuDefinition[] ReadDefinitions(string directory)
+    {
+        try
+        {
+            return Directory.GetFiles(directory, "*.json")
+                .Order(StringComparer.OrdinalIgnoreCase)
+                .Select(ReadDefinition)
+                .ToArray();
+        }
+        catch (DirectoryNotFoundException)
+        {
+            // No variants folder just means no variants. (Directory.Exists is not used: it also says "false"
+            // when the folder exists but cannot be accessed, which would hide that problem.)
+            return [];
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            // An unreadable folder is reported like a bad file: as a message, not a crash.
+            throw new InvalidOperationException(
+                $"The variants folder '{directory}' could not be read: {exception.Message}", exception);
+        }
     }
 
     public bool TryGet(string id, out SudokuDefinition definition) =>
@@ -49,6 +64,11 @@ internal sealed class SudokuDefinitionCatalog
         {
             throw new InvalidOperationException(
                 $"Sudoku definition file '{fileName}' is not valid: {exception.Message}", exception);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            throw new InvalidOperationException(
+                $"Sudoku definition file '{fileName}' could not be read: {exception.Message}", exception);
         }
     }
 }

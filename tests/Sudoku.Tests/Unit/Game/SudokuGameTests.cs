@@ -1,5 +1,6 @@
 using Sudoku.Core.Domain.Model;
 using Sudoku.Core.Domain.Game;
+using Sudoku.Core.Domain.Game.Results;
 using Sudoku.Core.Domain.Generation;
 using Sudoku.Core.Domain.Validation;
 using Sudoku.Tests.Fakes;

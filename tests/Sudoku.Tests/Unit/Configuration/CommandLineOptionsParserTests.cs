@@ -73,6 +73,18 @@ public sealed class CommandLineOptionsParserTests : IDisposable
     }
 
     [Fact]
+    public void TryParse_BrokenVariantFile_ReportsTheFileInsteadOfThrowing()
+    {
+        File.WriteAllText(Path.Combine(_variantsDirectory, "broken.json"), "{ not json");
+
+        bool parsed = CreateParser().TryParse(["--variant", "mini-6x6"], out GameOptions? options, out string error);
+
+        Assert.False(parsed);
+        Assert.Null(options);
+        Assert.Contains("broken.json", error);
+    }
+
+    [Fact]
     public void TryParse_ValidPrefilledCells_IsAccepted()
     {
         Assert.True(CreateParser().TryParse(["--prefilled-cells", "35"], out GameOptions? options, out _));

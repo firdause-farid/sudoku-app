@@ -16,13 +16,4 @@ public readonly record struct Position
 
     public int Row { get; }
     public int Column { get; }
-
-    /// <summary>
-    /// Parses text such as "B3" (row label followed by column number), ignoring case and surrounding whitespace.
-    /// </summary>
-    public static bool TryParse(string? text, SudokuDefinition definition, out Position position, out PositionParseError error)
-    {
-        ArgumentNullException.ThrowIfNull(definition);
-        return definition.TryParsePosition(text, out position, out error);
-    }
 }

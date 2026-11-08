@@ -1,5 +1,6 @@
 using Sudoku.Core.Application.Ports;
 using Sudoku.Core.Domain.Game;
+using Sudoku.Core.Domain.Game.Results;
 using Sudoku.Core.Domain.Model;
 using Sudoku.Core.Presentation.Messages;
 

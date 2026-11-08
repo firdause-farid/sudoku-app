@@ -44,7 +44,7 @@ public sealed class SudokuDefinition
             throw new ArgumentException("A definition must provide one unique, non-empty row label per row.", nameof(rowLabels));
         EnsureTypableLabels(rowLabels);
         EnsureTypableSymbols(symbols);
-        if (minimumPrefilledCellCount is < 1 || minimumPrefilledCellCount >= gridSize * gridSize)
+        if (minimumPrefilledCellCount < 1 || minimumPrefilledCellCount >= gridSize * gridSize)
             throw new ArgumentOutOfRangeException(nameof(minimumPrefilledCellCount));
 
         Id = id;

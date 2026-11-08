@@ -1,6 +1,6 @@
 using Sudoku.Core.Domain.Model;
 
-namespace Sudoku.Core.Domain.Game;
+namespace Sudoku.Core.Domain.Game.Results;
 
 /// <summary>
 /// A correct value for one empty cell.

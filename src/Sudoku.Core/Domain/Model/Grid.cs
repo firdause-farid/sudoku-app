@@ -86,13 +86,4 @@ public sealed class Grid : IGridView
             }
         return grid;
     }
-
-    public int?[,] ToValueArray()
-    {
-        var result = new int?[Definition.GridSize, Definition.GridSize];
-        for (int row = 0; row < Definition.GridSize; row++)
-            for (int column = 0; column < Definition.GridSize; column++)
-                result[row, column] = _cells[row, column].Value;
-        return result;
-    }
 }

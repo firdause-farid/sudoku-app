@@ -11,7 +11,7 @@ public class SudokuDefinitionTests
     {
         SudokuDefinition definition = TestSudokuDefinitions.Mini6x6;
 
-        bool parsed = Position.TryParse("f6", definition, out Position position, out PositionParseError error);
+        bool parsed = definition.TryParsePosition("f6", out Position position, out PositionParseError error);
 
         Assert.True(parsed);
         Assert.Equal(PositionParseError.None, error);
@@ -40,9 +40,9 @@ public class SudokuDefinitionTests
             8, 18);
 
         Assert.Equal("Q2", definition.FormatPosition(new Position(1, 1)));
-        Assert.True(Position.TryParse("u6", definition, out Position position, out _));
+        Assert.True(definition.TryParsePosition("u6", out Position position, out _));
         Assert.Equal(new Position(5, 5), position);
-        Assert.False(Position.TryParse("A1", definition, out _, out PositionParseError error));
+        Assert.False(definition.TryParsePosition("A1", out _, out PositionParseError error));
         Assert.Equal(PositionParseError.RowOutOfRange, error);
     }
 

@@ -11,6 +11,7 @@ using Sudoku.Core.Domain.Randomness;
 using Sudoku.Core.Domain.Validation;
 using Sudoku.Core.Presentation.Messages;
 using Sudoku.Core.Presentation.Rendering;
+using Sudoku.Core.Presentation.Rendering.Styles;
 
 namespace Sudoku.Console;
 
@@ -32,7 +33,7 @@ internal static class Program
                 return InvalidArgumentsExitCode;
             }
 
-            return CreateGameRunner(options!, exceptionLogger).Run()
+            return CreateGameRunner(options, exceptionLogger).Run()
                 ? SuccessExitCode
                 : ApplicationFailureExitCode;
         }

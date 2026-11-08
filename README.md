@@ -47,7 +47,7 @@ Option names are not case-sensitive. Unknown options, repeated options, an optio
 |---|---|
 | `0` | The session ended normally, including after `quit` or end-of-input. |
 | `1` | A puzzle could not be generated, or an unhandled application error ended the run. Details are in `logs/exceptions.log`. |
-| `2` | The command-line options were invalid. The reason is printed and nothing is logged. |
+| `2` | The command-line options were invalid, or a variant file could not be read. The reason is printed on the error stream and nothing is logged. |
 
 ## Run the tests
 
@@ -104,14 +104,16 @@ src/
       Ports/                  What Core needs from outside: IConsole, IRenderer, IExceptionLogger
       Runtime/                ConsoleGameRunner (the game loop) and CommandDispatcher
     Domain/
-      Model/                  SudokuDefinition, Position, Grid, Cell, constraint checking
-      Game/                   SudokuGame, its factory, move and hint results
+      Model/                  SudokuDefinition, Position, Grid, Cell, constraint checking, grid-to-array helper
+      Game/                   SudokuGame and its factory
+        Results/              Move and hint results
       Generation/             Puzzle generator, solution generator, solution counter
       Validation/             Validator and validation results
       Randomness/             IRandomSource
     Presentation/
       Messages/               All player-facing text (UserMessages.resx)
-      Rendering/              GridRenderer and the grid styles
+      Rendering/              GridRenderer and IGridStyle
+        Styles/               The plain and the enhanced grid styles
   Sudoku.Console/             The program
     Adapters/                 Real console and random source
     Configuration/            Command-line parsing and the variant catalog
@@ -181,7 +183,7 @@ A variant is one JSON file in `src/Sudoku.Console/Variants`. The file name does 
 
 All fields are required, and the property names are not case-sensitive.
 
-**Rules the program checks.** A file that breaks one of these stops the game with the generic unexpected-error message, and the reason is written to `logs/exceptions.log`:
+**Rules the program checks.** A file that breaks one of these stops a `--variant` run before the game starts. The message names the file and the rule, it is printed on the error stream, and the exit code is 2:
 
 | Field | Rule |
 |---|---|
@@ -273,7 +275,8 @@ Player mistakes are normal feedback, not errors. Only unexpected exceptions are 
 | An unexpected exception while running a command | Yes ("Handling a player command") | "An unexpected error occurred. Details were written to the application log." The game continues. |
 | A puzzle cannot be generated (at the start or after a win) | Yes ("Starting a new game") | "Unable to start a new game. Please try again later." The game ends with exit code 1. |
 | A key cannot be read for the replay pause | Yes | Nothing. The game carries on without the pause. |
-| Anything else outside command handling, such as a broken variant file while loading a requested variant | Yes ("Unhandled application exception") | The generic message above on the error stream; exit code 1 |
+| A variant file is broken (only read when `--variant` is given) | No | The file name and the reason on the error stream; exit code 2 |
+| Anything else outside command handling | Yes ("Unhandled application exception") | The generic message above on the error stream; exit code 1 |
 
 - **Where:** `logs/exceptions.log`, inside the folder the program was started from. The folder is created on first use, and `logs/` is excluded from source control. Inspect it with `cat logs/exceptions.log`.
 - **Format:** each entry starts with a UTC timestamp and a short description of what the program was doing, followed by the full exception with its stack trace. New entries are appended.
@@ -286,7 +289,7 @@ System.InvalidOperationException: Demo
 ```
 
 - **Safe by design:** if the log file cannot be written (for example a read-only folder), the logger reports that on the error stream and carries on, so logging can never cause a second crash.
-- **Broken variant files:** the variants catalog is loaded when `--variant` is supplied. It reads every JSON file before starting the game, so a broken file prevents that variant run from starting, even if the requested file itself is valid. The error names the bad file, for example "Sudoku definition file 'bad.json' is not valid: …", and the run exits with code 1. The default game does not load the variants folder.
+- **Broken variant files:** the variants folder is read only when `--variant` is given. Every JSON file in it is read before the game starts, so one broken file stops that run even if the requested variant is valid. The error names the bad file, for example "Sudoku definition file 'bad.json' is not valid: …", and the run exits with code 2. A file or folder that cannot be read (for example a permission problem) is reported the same way, for example "Sudoku definition file 'x.json' could not be read: …". The default game does not read the variants folder.
 
 ## Testing approach
 
@@ -307,7 +310,7 @@ The tests below are the ones that directly cover each requirement or example fro
 | Clear a cell (`C5 clear`) | `ClearCommandHandlerTests`; `CommandHandlerRegistryTests`; `SudokuGameTests.Clear_UserFilled_ClearsCell` |
 | Hint reveals one correct value, not placed | `HintCommandHandlerTests`; `SudokuGameTests.Hint_ReturnsSolutionValueForEmptyCell` |
 | Check reports first violation or none | `CheckCommandHandlerTests`; `SudokuValidatorTests` (Row/Column/Box duplicate) |
-| Quit at any time | `QuitCommandHandlerTests`; `ConsoleGameRunnerTests.Quit_PrintsThanksAndExits` |
+| Quit at any time | `QuitCommandHandlerTests`; `ConsoleGameRunnerTests.Quit_PrintsThanksAndExits`; `ConsoleGameRunnerTests.Run_WhenInputEnds_EndsNormally` |
 | Cannot modify pre-filled cells | `SudokuGameTests.Place_OnPrefilledCell_ReturnsPrefilledCellStatus`; `ConsoleGameRunnerTests.Place_OnPrefilledCell_PrintsPrefilledMessage` |
 | Number must be in range (1–9 by default) | `SudokuGameTests.Place_NumberOutsideRange_ReturnsInvalid`; `ConsoleGameRunnerTests.Place_NumberOutsideRange_PrintsInvalidNumberMessage` |
 | **Violation example 1** – "Number 3 already exists in Row A." | `SudokuValidatorTests.RowDuplicate_ReturnsStructuredIssue` |
@@ -317,7 +320,8 @@ The tests below are the ones that directly cover each requirement or example fro
 | Puzzle has a unique solution | `SudokuSolutionCounterTests`; `PuzzleGeneratorTests` |
 | Grid rendering layout | `GridRendererTests` |
 | Exception logging on unexpected errors | `FileExceptionLoggerTests`; `ConsoleGameRunnerTests` |
+| Exit code 0 after a normal end, 1 when no game can be started | `ConsoleGameRunnerTests` (the `Run` return value that `Program.cs` turns into the exit code) |
 | Command routing rules (literals first, wildcards, duplicates) | `CommandHandlerRegistryTests` |
-| Command-line options (defaults, unknown, repeated, ranges) | `CommandLineOptionsParserTests` |
+| Command-line options (defaults, unknown, repeated, ranges, broken variant file) | `CommandLineOptionsParserTests` |
 | Variant files (loading, rules, naming the bad file) | `SudokuDefinitionCatalogTests`; `SudokuDefinitionTests` |
 | A 6×6 puzzle generates with the right clue count and a unique solution | `PuzzleGeneratorTests.Generate_UsesConfiguredSixBySixDimensionsAndPrefilledCellCount` |

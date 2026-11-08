@@ -1,4 +1,4 @@
-namespace Sudoku.Core.Domain.Game;
+namespace Sudoku.Core.Domain.Game.Results;
 
 /// <summary>
 /// The outcome of a place or clear request.
