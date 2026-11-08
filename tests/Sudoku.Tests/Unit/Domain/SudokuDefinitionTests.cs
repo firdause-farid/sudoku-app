@@ -80,4 +80,46 @@ public class SudokuDefinitionTests
         Assert.Throws<ArgumentOutOfRangeException>(() => new SudokuDefinition("x", 6, 2, 3, symbols, labels, 8, 7));
         Assert.Throws<ArgumentOutOfRangeException>(() => new SudokuDefinition("x", 6, 2, 3, symbols, labels, 8, 36));
     }
+
+    private static SudokuDefinition Build(string[] symbols, string[] labels) =>
+        new("x", 6, 2, 3, symbols, labels, 8, 18);
+
+    private static readonly string[] ValidSymbols = ["1", "2", "3", "4", "5", "6"];
+    private static readonly string[] ValidLabels = ["A", "B", "C", "D", "E", "F"];
+
+    [Theory]
+    [InlineData("A1")]
+    [InlineData("A B")]
+    [InlineData("7")]
+    public void Constructor_RowLabelWithDigitOrSpace_Throws(string badLabel)
+    {
+        string[] labels = [.. ValidLabels[..5], badLabel];
+
+        var exception = Assert.Throws<ArgumentException>(() => Build(ValidSymbols, labels));
+
+        Assert.Contains(badLabel, exception.Message);
+    }
+
+    [Theory]
+    [InlineData("clear")]
+    [InlineData("CLEAR")]
+    [InlineData("_")]
+    [InlineData("1 2")]
+    public void Constructor_SymbolThatCannotBeTyped_Throws(string badSymbol)
+    {
+        string[] symbols = [.. ValidSymbols[..5], badSymbol];
+
+        var exception = Assert.Throws<ArgumentException>(() => Build(symbols, ValidLabels));
+
+        Assert.Contains(badSymbol, exception.Message);
+    }
+
+    [Fact]
+    public void Constructor_LettersAndDigits_AreAccepted()
+    {
+        string[] symbols = ["1", "2", "3", "4", "5", "A"];
+        string[] labels = ["P", "Q", "R", "S", "T", "U"];
+
+        Assert.NotNull(Build(symbols, labels));
+    }
 }

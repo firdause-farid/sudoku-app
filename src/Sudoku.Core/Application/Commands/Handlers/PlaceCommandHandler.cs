@@ -8,12 +8,14 @@ namespace Sudoku.Core.Application.Commands.Handlers;
 
 public sealed class PlaceCommandHandler(IConsole console, IRenderer renderer) : ICommandHandler
 {
-    public string RoutePattern => "{cell} {number}";
+    private const string Pattern = $"{{{CommandHandlerInput.CellParameter}}} {{{CommandHandlerInput.NumberParameter}}}";
+
+    public string RoutePattern => Pattern;
 
     public CommandAction Handle(IReadOnlyDictionary<string, string> routeValues, ISudokuGame game)
     {
         SudokuDefinition definition = game.GetGridView().Definition;
-        string numberText = routeValues["number"];
+        string numberText = routeValues[CommandHandlerInput.NumberParameter];
         if (!definition.TryParseValue(numberText, out int number))
         {
             // A whole number outside the grid's range is a move error; anything else is not a command.
@@ -24,7 +26,7 @@ public sealed class PlaceCommandHandler(IConsole console, IRenderer renderer) : 
             return CommandAction.Continue;
         }
 
-        if (!CommandHandlerInput.TryGetPosition(routeValues["cell"], definition, out Position position, out string errorMessage))
+        if (!CommandHandlerInput.TryGetPosition(routeValues[CommandHandlerInput.CellParameter], definition, out Position position, out string errorMessage))
         {
             console.WriteLine(UserMessages.InvalidCommand(errorMessage));
             return CommandAction.Continue;

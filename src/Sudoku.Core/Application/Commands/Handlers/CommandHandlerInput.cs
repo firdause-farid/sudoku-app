@@ -5,6 +5,10 @@ namespace Sudoku.Core.Application.Commands.Handlers;
 
 internal static class CommandHandlerInput
 {
+    /// <summary>Route parameter names shared by the route patterns and the code that reads the values.</summary>
+    public const string CellParameter = "cell";
+    public const string NumberParameter = "number";
+
     public static bool TryGetPosition(string input, SudokuDefinition definition, out Position position, out string errorMessage)
     {
         if (Position.TryParse(input, definition, out position, out PositionParseError error))

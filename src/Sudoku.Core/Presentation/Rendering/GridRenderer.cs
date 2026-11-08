@@ -1,3 +1,4 @@
+using System.Text;
 using Sudoku.Core.Application.Ports;
 using Sudoku.Core.Domain.Model;
 using Sudoku.Core.Presentation.Messages;
@@ -18,35 +19,45 @@ public sealed class GridRenderer : IRenderer
 
     public string Render(IGridView grid)
     {
-        var sb = new System.Text.StringBuilder();
-        string columnHeader = string.Join(" ", Enumerable.Range(1, grid.Definition.GridSize));
-        sb.Append(_style.ColumnHeaderPrefix)
-            .Append(_style.FormatColumnHeader(columnHeader));
+        var builder = new StringBuilder();
+        AppendHeader(builder, grid.Definition);
 
-        if (_style.GetHeaderSeparator(grid.Definition.GridSize) is { } headerSeparator)
-            sb.AppendLine().Append(headerSeparator);
+        for (int row = 0; row < grid.Definition.GridSize; row++)
+            AppendRow(builder, grid, row);
 
-        for (int r = 0; r < grid.Definition.GridSize; r++)
+        return builder.ToString();
+    }
+
+    private void AppendHeader(StringBuilder builder, SudokuDefinition definition)
+    {
+        string columnNumbers = string.Join(" ", Enumerable.Range(1, definition.GridSize));
+        builder.Append(_style.ColumnHeaderPrefix)
+            .Append(_style.FormatColumnHeader(columnNumbers));
+
+        if (_style.GetHeaderSeparator(definition.GridSize) is { } headerSeparator)
+            builder.AppendLine().Append(headerSeparator);
+    }
+
+    private void AppendRow(StringBuilder builder, IGridView grid, int row)
+    {
+        SudokuDefinition definition = grid.Definition;
+        builder.AppendLine()
+            .Append("  ")
+            .Append(_style.FormatRowHeader(definition.RowLabels[row]))
+            .Append(_style.RowHeaderSeparator);
+
+        for (int column = 0; column < definition.GridSize; column++)
         {
-            sb.AppendLine()
-                .Append("  ");
-            sb.Append(_style.FormatRowHeader(grid.Definition.RowLabels[r]))
-                .Append(_style.RowHeaderSeparator);
-
-            for (int c = 0; c < grid.Definition.GridSize; c++)
-            {
-                var position = new Position(r, c);
-                int? value = grid.GetValue(position);
-                bool isPrefilled = grid.IsPrefilled(position);
-
-                string text = value.HasValue ? grid.Definition.FormatValue(value.Value) : UserMessages.EmptyCell;
-                sb.Append(isPrefilled ? _style.FormatPrefilledCell(text) : text);
-                if (c < grid.Definition.GridSize - 1)
-                    sb.Append(' ');
-            }
+            AppendCell(builder, grid, new Position(row, column));
+            if (column < definition.GridSize - 1)
+                builder.Append(' ');
         }
+    }
 
-        return sb.ToString();
+    private void AppendCell(StringBuilder builder, IGridView grid, Position position)
+    {
+        int? value = grid.GetValue(position);
+        string text = value.HasValue ? grid.Definition.FormatValue(value.Value) : UserMessages.EmptyCell;
+        builder.Append(grid.IsPrefilled(position) ? _style.FormatPrefilledCell(text) : text);
     }
 }
-

@@ -9,6 +9,7 @@ public sealed class SudokuSolutionCounter : ISudokuSolutionCounter
 {
     private const int UniquenessSolutionLimit = 2;
     private const int UniqueSolutionCount = 1;
+    private const int CompletedGridSolutionCount = 1;
 
     public bool HasUniqueSolution(int?[,] grid, SudokuDefinition definition) =>
         CountSolutions(grid, definition, UniquenessSolutionLimit) == UniqueSolutionCount;
@@ -27,7 +28,7 @@ public sealed class SudokuSolutionCounter : ISudokuSolutionCounter
     private static int Count(int?[,] grid, int limit, SudokuDefinition definition)
     {
         if (!SudokuGridSearch.TryFindEmpty(grid, out int row, out int column))
-            return UniqueSolutionCount;
+            return CompletedGridSolutionCount;
 
         int solutionCount = 0;
         for (int value = 1; value <= definition.GridSize; value++)

@@ -54,7 +54,7 @@ internal static class Program
         return new ConsoleGameRunner(
             console,
             CreateGameFactory(options),
-            new ConsoleCommandHandler(console, renderer, CreateCommandHandlers(console, renderer)),
+            new CommandDispatcher(console, renderer, CreateCommandHandlers(console, renderer)),
             exceptionLogger);
     }
 

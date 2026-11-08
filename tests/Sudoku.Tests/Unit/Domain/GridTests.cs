@@ -1,4 +1,5 @@
 using Sudoku.Core.Domain.Model;
+using Sudoku.Tests.Fakes;
 
 namespace Sudoku.Tests.Unit.Domain;
 
@@ -42,7 +43,7 @@ public class GridTests
     [Fact]
     public void Cell_PrefilledWithoutValue_Throws()
     {
-        Assert.Throws<ArgumentException>(() => new Cell(null, isPrefilled: true, definition: SudokuDefinition.Classic));
+        Assert.Throws<ArgumentException>(() => new Cell(null, isPrefilled: true));
     }
 
     [Fact]
@@ -54,5 +55,38 @@ public class GridTests
         clone.Clear(new Position(0, 0));
         Assert.Equal(5, grid.GetValue(new Position(0, 0)));
         Assert.Null(clone.GetValue(new Position(0, 0)));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(10)]
+    public void SetValue_ValueOutOfRange_ThrowsAndKeepsValue(int value)
+    {
+        var grid = new Grid(SudokuDefinition.Classic);
+        var position = new Position(0, 0);
+        grid.SetValue(position, 3);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => grid.SetValue(position, value));
+        Assert.Equal(3, grid.GetValue(position));
+    }
+
+    [Fact]
+    public void SetValue_UsesTheGridsOwnRange()
+    {
+        var grid = new Grid(TestSudokuDefinitions.Mini6x6);
+
+        grid.SetValue(new Position(0, 0), 6);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => grid.SetValue(new Position(0, 0), 7));
+    }
+
+    [Fact]
+    public void FromArrays_ValueOutOfRange_Throws()
+    {
+        var values = new int?[9, 9];
+        values[4, 4] = 10;
+
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => Grid.FromArrays(values, new bool[9, 9], SudokuDefinition.Classic));
     }
 }

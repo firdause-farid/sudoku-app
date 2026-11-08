@@ -12,7 +12,7 @@ public sealed class Grid : IGridView
         _cells = new Cell[Definition.GridSize, Definition.GridSize];
         for (int row = 0; row < Definition.GridSize; row++)
             for (int column = 0; column < Definition.GridSize; column++)
-                _cells[row, column] = new Cell(null, false, Definition);
+                _cells[row, column] = new Cell(null, false);
     }
 
     private Grid(Cell[,] cells, SudokuDefinition definition)
@@ -38,6 +38,7 @@ public sealed class Grid : IGridView
     public void SetValue(Position position, int value)
     {
         Definition.EnsurePositionInRange(position);
+        Definition.EnsureValueInRange(value, nameof(value));
         _cells[position.Row, position.Column].SetValue(value);
     }
 
@@ -61,7 +62,7 @@ public sealed class Grid : IGridView
         var copy = new Cell[Definition.GridSize, Definition.GridSize];
         for (int row = 0; row < Definition.GridSize; row++)
             for (int column = 0; column < Definition.GridSize; column++)
-                copy[row, column] = new Cell(_cells[row, column].Value, _cells[row, column].IsPrefilled, Definition);
+                copy[row, column] = new Cell(_cells[row, column].Value, _cells[row, column].IsPrefilled);
         return new Grid(copy, Definition);
     }
 
@@ -78,7 +79,11 @@ public sealed class Grid : IGridView
         var grid = new Grid(definition);
         for (int row = 0; row < definition.GridSize; row++)
             for (int column = 0; column < definition.GridSize; column++)
-                grid._cells[row, column] = new Cell(values[row, column], prefilledMask[row, column], definition);
+            {
+                if (values[row, column] is int value)
+                    definition.EnsureValueInRange(value, nameof(values));
+                grid._cells[row, column] = new Cell(values[row, column], prefilledMask[row, column]);
+            }
         return grid;
     }
 

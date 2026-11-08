@@ -41,51 +41,78 @@ public sealed class PuzzleGenerator : IPuzzleGenerator
     private (Grid Puzzle, int[,] Solution)? TryGenerate(int prefilledCount, SudokuDefinition definition)
     {
         int[,] solution = _solutionGenerator.GenerateSolution(_random, definition);
+        int?[,] values = ToNullable(solution, definition);
+        bool[,] prefilledMask = CreateMask(definition.GridSize, filled: true);
 
-        var values = new int?[definition.GridSize, definition.GridSize];
-        var prefilledMask = new bool[definition.GridSize, definition.GridSize];
-        for (int r = 0; r < definition.GridSize; r++)
-            for (int c = 0; c < definition.GridSize; c++)
-            {
-                values[r, c] = solution[r, c];
-                prefilledMask[r, c] = true;
-            }
-
-        int remainingPrefilledCount = definition.CellCount;
-
-        var positions = new List<(int r, int c)>();
-        for (int r = 0; r < definition.GridSize; r++)
-            for (int c = 0; c < definition.GridSize; c++)
-                positions.Add((r, c));
-
-        _random.Shuffle(positions);
-
-        foreach (var (r, c) in positions)
-        {
-            if (remainingPrefilledCount <= prefilledCount)
-                break;
-
-            // Tentatively remove.
-            int? saved = values[r, c];
-            values[r, c] = null;
-            prefilledMask[r, c] = false;
-
-            // Keep removal only if puzzle stays uniquely solvable.
-            if (!_solutionCounter.HasUniqueSolution(values, definition))
-            {
-                values[r, c] = saved;
-                prefilledMask[r, c] = true;
-                continue;
-            }
-
-            remainingPrefilledCount--;
-        }
-
+        int remainingPrefilledCount = RemoveCluesWhileUnique(values, prefilledMask, prefilledCount, definition);
         if (remainingPrefilledCount != prefilledCount)
             return null;
 
-        var puzzle = Grid.FromArrays(values, prefilledMask, definition);
-        return (puzzle, solution);
+        return (Grid.FromArrays(values, prefilledMask, definition), solution);
     }
 
+    /// <summary>
+    /// Visits every cell in random order and blanks it if the puzzle still has exactly one solution,
+    /// until only <paramref name="targetCount"/> cells remain. Returns how many cells remain.
+    /// </summary>
+    private int RemoveCluesWhileUnique(int?[,] values, bool[,] prefilledMask, int targetCount, SudokuDefinition definition)
+    {
+        int remainingPrefilledCount = definition.CellCount;
+        foreach (var (row, column) in CreateShuffledPositions(definition))
+        {
+            if (remainingPrefilledCount <= targetCount)
+                break;
+
+            if (TryRemoveClue(values, prefilledMask, row, column, definition))
+                remainingPrefilledCount--;
+        }
+
+        return remainingPrefilledCount;
+    }
+
+    /// <summary>Blanks one cell and keeps it blank only if the puzzle is still uniquely solvable.</summary>
+    private bool TryRemoveClue(int?[,] values, bool[,] prefilledMask, int row, int column, SudokuDefinition definition)
+    {
+        int? saved = values[row, column];
+        values[row, column] = null;
+        prefilledMask[row, column] = false;
+
+        if (_solutionCounter.HasUniqueSolution(values, definition))
+            return true;
+
+        values[row, column] = saved;
+        prefilledMask[row, column] = true;
+        return false;
+    }
+
+    private List<(int Row, int Column)> CreateShuffledPositions(SudokuDefinition definition)
+    {
+        var positions = new List<(int Row, int Column)>();
+        for (int row = 0; row < definition.GridSize; row++)
+            for (int column = 0; column < definition.GridSize; column++)
+                positions.Add((row, column));
+
+        _random.Shuffle(positions);
+        return positions;
+    }
+
+    private static int?[,] ToNullable(int[,] solution, SudokuDefinition definition)
+    {
+        var values = new int?[definition.GridSize, definition.GridSize];
+        for (int row = 0; row < definition.GridSize; row++)
+            for (int column = 0; column < definition.GridSize; column++)
+                values[row, column] = solution[row, column];
+
+        return values;
+    }
+
+    private static bool[,] CreateMask(int size, bool filled)
+    {
+        var mask = new bool[size, size];
+        for (int row = 0; row < size; row++)
+            for (int column = 0; column < size; column++)
+                mask[row, column] = filled;
+
+        return mask;
+    }
 }

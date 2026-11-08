@@ -2,7 +2,10 @@ using System.Globalization;
 
 namespace Sudoku.Core.Domain.Model;
 
-/// <summary>Describes a classic Sudoku grid and its input/output symbols.</summary>
+/// <summary>
+/// Describes the shape of a Sudoku grid (size, subgrids, symbols and row labels)
+/// and how its values and positions are written and read.
+/// </summary>
 public sealed class SudokuDefinition
 {
     public static SudokuDefinition Classic { get; } = new(
@@ -39,6 +42,8 @@ public sealed class SudokuDefinition
         if (rowLabels.Count != gridSize || rowLabels.Any(string.IsNullOrWhiteSpace) ||
             rowLabels.Distinct(StringComparer.OrdinalIgnoreCase).Count() != gridSize)
             throw new ArgumentException("A definition must provide one unique, non-empty row label per row.", nameof(rowLabels));
+        EnsureTypableLabels(rowLabels);
+        EnsureTypableSymbols(symbols);
         if (minimumPrefilledCellCount is < 1 || minimumPrefilledCellCount >= gridSize * gridSize)
             throw new ArgumentOutOfRangeException(nameof(minimumPrefilledCellCount));
 
@@ -51,6 +56,33 @@ public sealed class SudokuDefinition
         MinimumPrefilledCellCount = minimumPrefilledCellCount;
         DefaultPrefilledCellCount = defaultPrefilledCellCount;
         EnsureValidPrefilledCellCount(defaultPrefilledCellCount, nameof(defaultPrefilledCellCount));
+    }
+
+    /// <summary>
+    /// Text the game already uses: "clear" is the command word in "A1 clear", and "_" is how an empty cell is drawn.
+    /// A symbol with either text could never be told apart from them.
+    /// </summary>
+    private const string ClearCommandWord = "clear";
+    private const string EmptyCellMarker = "_";
+
+    private static void EnsureTypableLabels(IReadOnlyList<string> rowLabels)
+    {
+        foreach (string label in rowLabels)
+            if (label.Any(character => char.IsDigit(character) || char.IsWhiteSpace(character)))
+                throw new ArgumentException(
+                    $"Row label '{label}' must not contain digits or spaces, because a cell is typed as the row label followed by the column number.",
+                    nameof(rowLabels));
+    }
+
+    private static void EnsureTypableSymbols(IReadOnlyList<string> symbols)
+    {
+        foreach (string symbol in symbols)
+        {
+            if (symbol.Any(char.IsWhiteSpace))
+                throw new ArgumentException($"Symbol '{symbol}' must not contain spaces, because input is split on spaces.", nameof(symbols));
+            if (symbol.Equals(ClearCommandWord, StringComparison.OrdinalIgnoreCase) || symbol == EmptyCellMarker)
+                throw new ArgumentException($"Symbol '{symbol}' is reserved by the game and cannot be used as a value.", nameof(symbols));
+        }
     }
 
     public string Id { get; }
@@ -117,10 +149,7 @@ public sealed class SudokuDefinition
         }
 
         string normalized = text.Trim();
-        string? rowLabel = RowLabels
-            .OrderByDescending(label => label.Length)
-            .FirstOrDefault(label => normalized.StartsWith(label, StringComparison.OrdinalIgnoreCase));
-        if (rowLabel is null)
+        if (!TryMatchRowLabel(normalized, out int row, out string rowLabel))
         {
             error = normalized.Any(char.IsAsciiDigit)
                 ? PositionParseError.RowOutOfRange
@@ -128,29 +157,50 @@ public sealed class SudokuDefinition
             return false;
         }
 
-        string columnText = normalized[rowLabel.Length..];
-        if (!int.TryParse(columnText, NumberStyles.None, CultureInfo.InvariantCulture, out int columnNumber))
+        if (!int.TryParse(normalized[rowLabel.Length..], NumberStyles.None, CultureInfo.InvariantCulture, out int columnNumber))
         {
             error = PositionParseError.InvalidFormat;
             return false;
         }
+
         if (columnNumber < 1 || columnNumber > GridSize)
         {
             error = PositionParseError.ColumnOutOfRange;
             return false;
         }
 
-        int row = 0;
-        while (!RowLabels[row].Equals(rowLabel, StringComparison.OrdinalIgnoreCase))
-            row++;
         position = new Position(row, columnNumber - 1);
         error = PositionParseError.None;
         return true;
+    }
+
+    /// <summary>Finds the row label the text starts with. The longest match wins, so "AB3" is not read as row "A".</summary>
+    private bool TryMatchRowLabel(string text, out int row, out string label)
+    {
+        row = -1;
+        label = string.Empty;
+        for (int index = 0; index < RowLabels.Count; index++)
+        {
+            string candidate = RowLabels[index];
+            if (candidate.Length > label.Length && text.StartsWith(candidate, StringComparison.OrdinalIgnoreCase))
+            {
+                row = index;
+                label = candidate;
+            }
+        }
+
+        return row >= 0;
     }
 
     public void EnsurePositionInRange(Position position)
     {
         if (position.Row >= GridSize || position.Column >= GridSize)
             throw new ArgumentOutOfRangeException(nameof(position), "Position is outside this Sudoku grid.");
+    }
+
+    public void EnsureValueInRange(int value, string parameterName)
+    {
+        if (!IsValueInRange(value))
+            throw new ArgumentOutOfRangeException(parameterName, value, $"Value must be between 1 and {GridSize}.");
     }
 }

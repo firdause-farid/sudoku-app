@@ -5,14 +5,14 @@ using Sudoku.Core.Presentation.Messages;
 
 namespace Sudoku.Core.Application.Runtime;
 
-/// <summary>Parses input and dispatches each command to its registered handler.</summary>
-public sealed class ConsoleCommandHandler : IConsoleCommandHandler
+/// <summary>Routes each line of input to its registered command handler. Input that matches no command gets the standard "unrecognized command" message.</summary>
+public sealed class CommandDispatcher : ICommandDispatcher
 {
     private readonly IConsole _console;
     private readonly IRenderer _renderer;
     private readonly CommandHandlerRegistry _handlerRegistry;
 
-    public ConsoleCommandHandler(
+    public CommandDispatcher(
         IConsole console,
         IRenderer renderer,
         IEnumerable<ICommandHandler> handlers)

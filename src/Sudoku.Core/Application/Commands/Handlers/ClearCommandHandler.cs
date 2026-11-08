@@ -7,12 +7,14 @@ namespace Sudoku.Core.Application.Commands.Handlers;
 
 public sealed class ClearCommandHandler(IConsole console, IRenderer renderer) : ICommandHandler
 {
-    public string RoutePattern => "{cell} clear";
+    private const string Pattern = $"{{{CommandHandlerInput.CellParameter}}} clear";
+
+    public string RoutePattern => Pattern;
 
     public CommandAction Handle(IReadOnlyDictionary<string, string> routeValues, ISudokuGame game)
     {
         SudokuDefinition definition = game.GetGridView().Definition;
-        if (!CommandHandlerInput.TryGetPosition(routeValues["cell"], definition, out Position position, out string errorMessage))
+        if (!CommandHandlerInput.TryGetPosition(routeValues[CommandHandlerInput.CellParameter], definition, out Position position, out string errorMessage))
         {
             console.WriteLine(UserMessages.InvalidCommand(errorMessage));
             return CommandAction.Continue;

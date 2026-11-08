@@ -135,18 +135,16 @@ All fields are required, and the property names are not case-sensitive.
 | `id` | Not blank. Unique across all files, ignoring case. `--variant` matches it ignoring case. |
 | `gridSize` | At least 2. This is the number of rows, columns and distinct values. |
 | `subgridRows`, `subgridColumns` | Both greater than 0, and `subgridRows × subgridColumns` must equal `gridSize` (a 6×6 grid uses 2×3 or 3×2, a 9×9 grid uses 3×3). |
-| `symbols` | Exactly `gridSize` entries. None blank. All different, ignoring case. The first symbol is value 1, the second is value 2, and so on. |
-| `rowLabels` | Exactly `gridSize` entries. None blank. All different, ignoring case. They are listed from the top row to the bottom row. |
+| `symbols` | Exactly `gridSize` entries. None blank. All different, ignoring case. None contains a space, and none is `_` or `clear` (any case), because the game already uses those. The first symbol is value 1, the second is value 2, and so on. |
+| `rowLabels` | Exactly `gridSize` entries. None blank. All different, ignoring case. None contains a digit or a space. They are listed from the top row to the bottom row. |
 | `minimumPrefilledCellCount` | At least 1 and fewer than `gridSize × gridSize`. |
 | `defaultPrefilledCellCount` | Not below the minimum, and fewer than `gridSize × gridSize` so at least one cell is empty. |
 
 **Conventions the program does not check.** Breaking these will not stop the game from starting, but the game may behave badly:
 
-- **Row labels should be letters, one character each.** A cell is typed as the row label followed directly by the column number, such as `B3`, and columns are always the numbers `1` to `gridSize`. A label that contains a digit makes input ambiguous. A label with a space can never be typed, because input is split on spaces. A label that starts with another label (`A` and `AB`) is confusing. Multi-character labels also push the grid out of alignment, because the header spacing assumes one character.
+- **Row labels should be letters, one character each.** A cell is typed as the row label followed directly by the column number, such as `B3`, and columns are always the numbers `1` to `gridSize`. (Labels with digits or spaces are rejected, because they could not be typed reliably.) A label that starts with another label (`A` and `AB`) is confusing. Multi-character labels also push the grid out of alignment, because the header spacing assumes one character.
 - **Symbols should be single characters, normally `1` to `gridSize` in order.**
-  - Do not use `clear`, because `A1 clear` always means "clear this cell".
-  - Do not use `_`, the mark for an empty cell.
-  - Do not use spaces.
+  - (`clear`, `_` and symbols containing spaces are rejected, because the game already uses them.)
   - The "Number must be between 1 and N" message assumes numeric symbols, so non-numeric symbols give a misleading message when someone types a plain number.
 - **Keep the grid small.** Only 6×6 and 9×9 are covered by tests. Past 9 columns, column numbers have two digits and the grid no longer lines up. The puzzle generator is simple, so large grids may take a long time to generate.
 - **Keep the default prefilled count comfortably above the minimum.** Counts close to the lowest possible are hard to reach with a unique solution, and if the generator gives up after 100 attempts, the player sees "Unable to start a new game." The classic file uses 17 as the minimum, which is the lowest known for a unique 9×9 puzzle.

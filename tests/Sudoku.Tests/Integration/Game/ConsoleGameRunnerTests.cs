@@ -139,11 +139,11 @@ public class ConsoleGameRunnerTests
         console.Inputs.Enqueue("hint");
         console.Inputs.Enqueue("quit");
         var logger = new RecordingExceptionLogger();
-        var commandHandler = new ThrowOnceCommandHandler();
+        var commandDispatcher = new ThrowOnceDispatcher();
         var runner = new ConsoleGameRunner(
             console,
             new RecordingGameFactory(),
-            commandHandler,
+            commandDispatcher,
             logger);
 
         runner.Run();
@@ -151,7 +151,7 @@ public class ConsoleGameRunnerTests
         Assert.Contains(UserMessages.UnexpectedError, console.Outputs);
         Assert.Single(logger.Exceptions);
         Assert.Equal("Handling a player command", logger.Exceptions[0].Context);
-        Assert.Equal(2, commandHandler.HandleCount);
+        Assert.Equal(2, commandDispatcher.HandleCount);
     }
 
     [Fact]
@@ -434,7 +434,7 @@ public class ConsoleGameRunnerTests
         return new ConsoleGameRunner(
             console,
             gameFactory ?? new SudokuGameFactory(actualGenerator, new SudokuValidator(), random, SudokuDefinition.Classic),
-            new ConsoleCommandHandler(console, actualRenderer, new ICommandHandler[]
+            new CommandDispatcher(console, actualRenderer, new ICommandHandler[]
             {
                 new HintCommandHandler(console), new CheckCommandHandler(console), new QuitCommandHandler(console),
                 new PlaceCommandHandler(console, actualRenderer), new ClearCommandHandler(console, actualRenderer)
@@ -453,7 +453,7 @@ public class ConsoleGameRunnerTests
         }
     }
 
-    private sealed class ThrowOnceCommandHandler : IConsoleCommandHandler
+    private sealed class ThrowOnceDispatcher : ICommandDispatcher
     {
         public int HandleCount { get; private set; }
 

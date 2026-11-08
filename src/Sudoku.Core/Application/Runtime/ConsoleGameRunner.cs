@@ -12,85 +12,90 @@ public sealed class ConsoleGameRunner
 {
     private readonly IConsole _console;
     private readonly ISudokuGameFactory _gameFactory;
-    private readonly IConsoleCommandHandler _commandHandler;
+    private readonly ICommandDispatcher _commandDispatcher;
     private readonly IExceptionLogger _exceptionLogger;
-    private ISudokuGame? _game;
-    private bool _running;
 
     public ConsoleGameRunner(
         IConsole console,
         ISudokuGameFactory gameFactory,
-        IConsoleCommandHandler commandHandler,
+        ICommandDispatcher commandDispatcher,
         IExceptionLogger exceptionLogger)
     {
         _console = console ?? throw new ArgumentNullException(nameof(console));
         _gameFactory = gameFactory ?? throw new ArgumentNullException(nameof(gameFactory));
-        _commandHandler = commandHandler ?? throw new ArgumentNullException(nameof(commandHandler));
+        _commandDispatcher = commandDispatcher ?? throw new ArgumentNullException(nameof(commandDispatcher));
         _exceptionLogger = exceptionLogger ?? throw new ArgumentNullException(nameof(exceptionLogger));
     }
 
     public void Run()
     {
-        _running = TryStartNewGame();
+        ISudokuGame? game = TryStartNewGame();
 
-        while (_running)
+        while (game is not null)
         {
             _console.WriteLine(UserMessages.CommandPrompt);
             string? line = _console.ReadLine();
             if (line is null)
-            {
-                _running = false;
-                break;
-            }
+                return;
 
-            ISudokuGame game = _game ?? throw new InvalidOperationException("A game must be started before reading commands.");
-            CommandAction action;
-            try
-            {
-                action = _commandHandler.Handle(line, game);
-            }
-            catch (Exception exception)
-            {
-                _exceptionLogger.Log(exception, "Handling a player command");
-                _console.WriteLine(UserMessages.UnexpectedError);
-                continue;
-            }
-
-            if (action == CommandAction.Quit)
-                _running = false;
-            else if (action == CommandAction.MoveAccepted && game.IsComplete())
-                CompleteGameAndReplay();
+            game = NextGameAfter(ExecuteSafely(line, game), game);
         }
     }
 
-    private bool TryStartNewGame()
+    /// <summary>Runs one command. An unexpected failure is logged and reported, and play continues.</summary>
+    private CommandAction ExecuteSafely(string line, ISudokuGame game)
+    {
+        try
+        {
+            return _commandDispatcher.Handle(line, game);
+        }
+        catch (Exception exception)
+        {
+            _exceptionLogger.Log(exception, "Handling a player command");
+            _console.WriteLine(UserMessages.UnexpectedError);
+            return CommandAction.Continue;
+        }
+    }
+
+    /// <summary>Returns the game to keep playing, a fresh game after a win, or null when the session should end.</summary>
+    private ISudokuGame? NextGameAfter(CommandAction action, ISudokuGame game)
+    {
+        if (action == CommandAction.Quit)
+            return null;
+
+        if (action == CommandAction.MoveAccepted && game.IsComplete())
+            return CompleteGameAndReplay();
+
+        return game;
+    }
+
+    private ISudokuGame? TryStartNewGame()
     {
         ISudokuGame game;
         try
         {
             game = _gameFactory.Create();
-            _game = game;
         }
         catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
         {
             _exceptionLogger.Log(ex, "Starting a new game");
             _console.WriteLine(UserMessages.UnableToStartGame);
-            return false;
+            return null;
         }
 
         _console.WriteLine(UserMessages.Welcome);
         _console.WriteLine();
         _console.WriteLine(UserMessages.PuzzleHeading);
-        _commandHandler.PrintGrid(game);
-        return true;
+        _commandDispatcher.PrintGrid(game);
+        return game;
     }
 
-    private void CompleteGameAndReplay()
+    private ISudokuGame? CompleteGameAndReplay()
     {
         _console.WriteLine();
         _console.WriteLine(UserMessages.GameCompleted);
         _console.WriteLine(UserMessages.ReplayPrompt);
         _console.ReadKey(true);
-        _running = TryStartNewGame();
+        return TryStartNewGame();
     }
 }
