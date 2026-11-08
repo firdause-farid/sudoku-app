@@ -21,7 +21,7 @@ internal static class CommandHandlerTestContext
             { 2, 8, 7, 4, 1, 9, 6, 3, 5 },
             { 3, 4, 5, 2, 8, 6, 1, 7, 9 }
         };
-        return new SudokuGame(new Grid(), solution, new SudokuValidator(), new SeededRandomSource(1));
+        return new SudokuGame(new Grid(SudokuDefinition.Classic), solution, new SudokuValidator(), new SeededRandomSource(1));
     }
 
     public static IReadOnlyDictionary<string, string> Route(params (string Name, string Value)[] values) =>

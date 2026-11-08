@@ -13,18 +13,18 @@ public class SudokuGameFactoryTests
     public void Create_RequestsTheRequiredNumberOfPrefilledCells()
     {
         var generator = new RecordingPuzzleGenerator(CreateInnerGenerator(1));
-        var factory = new SudokuGameFactory(generator, new SudokuValidator(), new SeededRandomSource(1));
+        var factory = new SudokuGameFactory(generator, new SudokuValidator(), new SeededRandomSource(1), SudokuDefinition.Classic);
 
         factory.Create();
 
-        Assert.Equal(new[] { PuzzleGenerationSettings.RequiredPrefilledCellCount }, generator.RequestedCounts);
+        Assert.Equal(new[] { SudokuDefinition.Classic.DefaultPrefilledCellCount }, generator.RequestedCounts);
     }
 
     [Fact]
     public void Create_ReturnsGameStartingFromTheGeneratedPuzzle()
     {
         var generator = new RecordingPuzzleGenerator(CreateInnerGenerator(2));
-        var factory = new SudokuGameFactory(generator, new SudokuValidator(), new SeededRandomSource(2));
+        var factory = new SudokuGameFactory(generator, new SudokuValidator(), new SeededRandomSource(2), SudokuDefinition.Classic);
 
         ISudokuGame game = factory.Create();
 
@@ -42,7 +42,7 @@ public class SudokuGameFactoryTests
     public void Create_CalledTwice_GeneratesANewPuzzleEachTime()
     {
         var generator = new RecordingPuzzleGenerator(CreateInnerGenerator(3));
-        var factory = new SudokuGameFactory(generator, new SudokuValidator(), new SeededRandomSource(3));
+        var factory = new SudokuGameFactory(generator, new SudokuValidator(), new SeededRandomSource(3), SudokuDefinition.Classic);
 
         factory.Create();
         factory.Create();
@@ -57,9 +57,9 @@ public class SudokuGameFactoryTests
         var validator = new SudokuValidator();
         var random = new SeededRandomSource(4);
 
-        Assert.Throws<ArgumentNullException>(() => new SudokuGameFactory(null!, validator, random));
-        Assert.Throws<ArgumentNullException>(() => new SudokuGameFactory(generator, null!, random));
-        Assert.Throws<ArgumentNullException>(() => new SudokuGameFactory(generator, validator, null!));
+        Assert.Throws<ArgumentNullException>(() => new SudokuGameFactory(null!, validator, random, SudokuDefinition.Classic));
+        Assert.Throws<ArgumentNullException>(() => new SudokuGameFactory(generator, null!, random, SudokuDefinition.Classic));
+        Assert.Throws<ArgumentNullException>(() => new SudokuGameFactory(generator, validator, null!, SudokuDefinition.Classic));
     }
 
     private static IPuzzleGenerator CreateInnerGenerator(int seed) =>
@@ -70,10 +70,10 @@ public class SudokuGameFactoryTests
         public List<int> RequestedCounts { get; } = new();
         public Grid? LastPuzzle { get; private set; }
 
-        public (Grid Puzzle, int[,] Solution) Generate(int prefilledCount = PuzzleGenerationSettings.RequiredPrefilledCellCount)
+        public (Grid Puzzle, int[,] Solution) Generate(int prefilledCount, SudokuDefinition definition)
         {
             RequestedCounts.Add(prefilledCount);
-            var generated = inner.Generate(prefilledCount);
+            var generated = inner.Generate(prefilledCount, definition);
             LastPuzzle = generated.Puzzle;
             return generated;
         }

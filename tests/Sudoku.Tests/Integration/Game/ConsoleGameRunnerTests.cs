@@ -56,7 +56,7 @@ public class ConsoleGameRunnerTests
     public void Place_OnPrefilledCell_PrintsPrefilledMessage()
     {
         const int seed = 7;
-        var puzzle = CreateGenerator(seed).Generate(30).Puzzle;
+        var puzzle = CreateGenerator(seed).Generate(30, SudokuDefinition.Classic).Puzzle;
 
         Position? prefilledPosition = null;
         for (int r = 0; r < 9 && prefilledPosition is null; r++)
@@ -70,14 +70,14 @@ public class ConsoleGameRunnerTests
         Assert.NotNull(prefilledPosition);
 
         var console = new FakeConsole();
-        console.Inputs.Enqueue($"{prefilledPosition} 6");
+        console.Inputs.Enqueue($"{Format(prefilledPosition)} 6");
         console.Inputs.Enqueue("quit");
 
         var engine = CreateRunner(console, seed: seed);
         engine.Run();
 
         var all = string.Join("\n", console.Outputs);
-        Assert.Contains(UserMessages.PrefilledCell(prefilledPosition.Value.ToString()), all);
+        Assert.Contains(UserMessages.PrefilledCell(Format(prefilledPosition)), all);
     }
 
     [Fact]
@@ -188,7 +188,7 @@ public class ConsoleGameRunnerTests
     public void Playthrough_WhenNextPuzzleGenerationFails_PrintsErrorAndExits()
     {
         const int seed = 43;
-        var (puzzle, solution) = CreateGenerator(seed).Generate(30);
+        var (puzzle, solution) = CreateGenerator(seed).Generate(30, SudokuDefinition.Classic);
         var console = new FakeConsole();
         var logger = new RecordingExceptionLogger();
         for (int row = 0; row < 9; row++)
@@ -213,7 +213,7 @@ public class ConsoleGameRunnerTests
     public void Clear_OnUserFilledCell_PrintsAcceptedFeedback()
     {
         const int seed = 11;
-        var puzzle = CreateGenerator(seed).Generate(30).Puzzle;
+        var puzzle = CreateGenerator(seed).Generate(30, SudokuDefinition.Classic).Puzzle;
 
         Position? emptyPos = null;
         for (int r = 0; r < 9 && emptyPos is null; r++)
@@ -227,8 +227,8 @@ public class ConsoleGameRunnerTests
         Assert.NotNull(emptyPos);
 
         var console = new FakeConsole();
-        console.Inputs.Enqueue($"{emptyPos} 5");
-        console.Inputs.Enqueue($"{emptyPos} clear");
+        console.Inputs.Enqueue($"{Format(emptyPos)} 5");
+        console.Inputs.Enqueue($"{Format(emptyPos)} clear");
         console.Inputs.Enqueue("quit");
 
         var engine = CreateRunner(console, seed: seed);
@@ -242,7 +242,7 @@ public class ConsoleGameRunnerTests
     public void Clear_OnPrefilledCell_PrintsPrefilledMessage()
     {
         const int seed = 12;
-        var puzzle = CreateGenerator(seed).Generate(30).Puzzle;
+        var puzzle = CreateGenerator(seed).Generate(30, SudokuDefinition.Classic).Puzzle;
 
         Position? prefilledPosition = null;
         for (int r = 0; r < 9 && prefilledPosition is null; r++)
@@ -256,14 +256,14 @@ public class ConsoleGameRunnerTests
         Assert.NotNull(prefilledPosition);
 
         var console = new FakeConsole();
-        console.Inputs.Enqueue($"{prefilledPosition} clear");
+        console.Inputs.Enqueue($"{Format(prefilledPosition)} clear");
         console.Inputs.Enqueue("quit");
 
         var engine = CreateRunner(console, seed: seed);
         engine.Run();
 
         var all = string.Join("\n", console.Outputs);
-        Assert.Contains(UserMessages.PrefilledCell(prefilledPosition.Value.ToString()), all);
+        Assert.Contains(UserMessages.PrefilledCell(Format(prefilledPosition)), all);
     }
 
     [Fact]
@@ -318,7 +318,7 @@ public class ConsoleGameRunnerTests
     public void Check_WithRowDuplicate_PrintsViolation()
     {
         const int seed = 13;
-        var puzzle = CreateGenerator(seed).Generate(30).Puzzle;
+        var puzzle = CreateGenerator(seed).Generate(30, SudokuDefinition.Classic).Puzzle;
 
         // Find an empty cell and a prefilled value in the same row to create a duplicate.
         Position? emptyPos = null;
@@ -349,7 +349,7 @@ public class ConsoleGameRunnerTests
         Assert.NotNull(emptyPos);
 
         var console = new FakeConsole();
-        console.Inputs.Enqueue($"{emptyPos} {duplicateValue}");
+        console.Inputs.Enqueue($"{Format(emptyPos)} {duplicateValue}");
         console.Inputs.Enqueue("check");
         console.Inputs.Enqueue("quit");
 
@@ -357,7 +357,7 @@ public class ConsoleGameRunnerTests
         engine.Run();
 
         var all = string.Join("\n", console.Outputs);
-        Assert.Contains(UserMessages.DuplicateRow(duplicateValue, emptyPos.Value.RowLetter), all);
+        Assert.Contains(UserMessages.DuplicateRow(duplicateValue.ToString(), SudokuDefinition.Classic.RowLabels[emptyPos.Value.Row]), all);
     }
 
     [Fact]
@@ -368,7 +368,7 @@ public class ConsoleGameRunnerTests
         var (puzzle, solution) = CreatePuzzleWithSinglePrefilledCell(duplicatePosition);
         int duplicateValue = solution[duplicatePosition.Row, duplicatePosition.Column];
         var console = new FakeConsole();
-        console.Inputs.Enqueue($"{targetPosition} {duplicateValue}");
+        console.Inputs.Enqueue($"{Format(targetPosition)} {duplicateValue}");
         console.Inputs.Enqueue("check");
         console.Inputs.Enqueue("quit");
         var runner = CreateRunner(console, generator: new SinglePuzzleGenerator(puzzle, solution));
@@ -386,7 +386,7 @@ public class ConsoleGameRunnerTests
         var (puzzle, solution) = CreatePuzzleWithSinglePrefilledCell(duplicatePosition);
         int duplicateValue = solution[duplicatePosition.Row, duplicatePosition.Column];
         var console = new FakeConsole();
-        console.Inputs.Enqueue($"{targetPosition} {duplicateValue}");
+        console.Inputs.Enqueue($"{Format(targetPosition)} {duplicateValue}");
         console.Inputs.Enqueue("check");
         console.Inputs.Enqueue("quit");
         var runner = CreateRunner(console, generator: new SinglePuzzleGenerator(puzzle, solution));
@@ -396,16 +396,19 @@ public class ConsoleGameRunnerTests
         Assert.Contains(UserMessages.DuplicateSubgrid(duplicateValue.ToString(), 3, 3), console.Outputs);
     }
 
+    private static string Format(Position? position) =>
+        SudokuDefinition.Classic.FormatPosition(position!.Value);
+
     private static (Grid Puzzle, int[,] Solution) CreatePuzzleWithSinglePrefilledCell(Position prefilledPosition)
     {
-        var (_, solution) = CreateGenerator(18).Generate(30);
+        var (_, solution) = CreateGenerator(18).Generate(30, SudokuDefinition.Classic);
         var values = new int?[9, 9];
         var prefilledMask = new bool[9, 9];
         values[prefilledPosition.Row, prefilledPosition.Column] =
             solution[prefilledPosition.Row, prefilledPosition.Column];
         prefilledMask[prefilledPosition.Row, prefilledPosition.Column] = true;
 
-        return (Grid.FromArrays(values, prefilledMask), solution);
+        return (Grid.FromArrays(values, prefilledMask, SudokuDefinition.Classic), solution);
     }
 
     private static IPuzzleGenerator CreateGenerator(int seed)
@@ -430,7 +433,7 @@ public class ConsoleGameRunnerTests
             new SudokuSolutionCounter());
         return new ConsoleGameRunner(
             console,
-            gameFactory ?? new SudokuGameFactory(actualGenerator, new SudokuValidator(), random),
+            gameFactory ?? new SudokuGameFactory(actualGenerator, new SudokuValidator(), random, SudokuDefinition.Classic),
             new ConsoleCommandHandler(console, actualRenderer, new ICommandHandler[]
             {
                 new HintCommandHandler(console), new CheckCommandHandler(console), new QuitCommandHandler(console),
@@ -481,7 +484,7 @@ public class ConsoleGameRunnerTests
 
     private sealed class StubSudokuGame : ISudokuGame
     {
-        private readonly Grid _grid = new();
+        private readonly Grid _grid = new(SudokuDefinition.Classic);
 
         public IGridView GetGridView() => _grid;
         public MoveResult Place(Position position, int number) => new(MoveStatus.Accepted);
@@ -493,19 +496,19 @@ public class ConsoleGameRunnerTests
 
     private sealed class FailingPuzzleGenerator : IPuzzleGenerator
     {
-        public (Grid Puzzle, int[,] Solution) Generate(int prefilledCount = 30) =>
+        public (Grid Puzzle, int[,] Solution) Generate(int prefilledCount, SudokuDefinition definition) =>
             throw new InvalidOperationException("test generation failure");
     }
 
     private sealed class InvalidPuzzleGenerator : IPuzzleGenerator
     {
-        public (Grid Puzzle, int[,] Solution) Generate(int prefilledCount = 30) =>
-            (new Grid(), new int[9, 9]);
+        public (Grid Puzzle, int[,] Solution) Generate(int prefilledCount, SudokuDefinition definition) =>
+            (new Grid(SudokuDefinition.Classic), new int[9, 9]);
     }
 
     private sealed class SinglePuzzleGenerator(Grid puzzle, int[,] solution) : IPuzzleGenerator
     {
-        public (Grid Puzzle, int[,] Solution) Generate(int prefilledCount = 30) =>
+        public (Grid Puzzle, int[,] Solution) Generate(int prefilledCount, SudokuDefinition definition) =>
             (puzzle, (int[,])solution.Clone());
     }
 
@@ -520,13 +523,13 @@ public class ConsoleGameRunnerTests
     {
         private bool _hasGenerated;
 
-        public (Grid Puzzle, int[,] Solution) Generate(int prefilledCount = 30)
+        public (Grid Puzzle, int[,] Solution) Generate(int prefilledCount, SudokuDefinition definition)
         {
             if (_hasGenerated)
                 throw new InvalidOperationException("test generation failure");
 
             _hasGenerated = true;
-            return inner.Generate(prefilledCount);
+            return inner.Generate(prefilledCount, SudokuDefinition.Classic);
         }
     }
 

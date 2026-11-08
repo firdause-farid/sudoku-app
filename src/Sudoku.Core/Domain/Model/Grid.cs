@@ -5,9 +5,10 @@ public sealed class Grid : IGridView
 {
     private readonly Cell[,] _cells;
 
-    public Grid(SudokuDefinition? definition = null)
+    public Grid(SudokuDefinition definition)
     {
-        Definition = definition ?? SudokuDefinition.Classic;
+        ArgumentNullException.ThrowIfNull(definition);
+        Definition = definition;
         _cells = new Cell[Definition.GridSize, Definition.GridSize];
         for (int row = 0; row < Definition.GridSize; row++)
             for (int column = 0; column < Definition.GridSize; column++)
@@ -63,9 +64,6 @@ public sealed class Grid : IGridView
                 copy[row, column] = new Cell(_cells[row, column].Value, _cells[row, column].IsPrefilled, Definition);
         return new Grid(copy, Definition);
     }
-
-    public static Grid FromArrays(int?[,] values, bool[,] prefilledMask) =>
-        FromArrays(values, prefilledMask, SudokuDefinition.Classic);
 
     public static Grid FromArrays(int?[,] values, bool[,] prefilledMask, SudokuDefinition definition)
     {

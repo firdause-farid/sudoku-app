@@ -23,15 +23,10 @@ public sealed class PuzzleGenerator : IPuzzleGenerator
         _solutionCounter = solutionCounter ?? throw new ArgumentNullException(nameof(solutionCounter));
     }
 
-    public (Grid Puzzle, int[,] Solution) Generate(int prefilledCount = PuzzleGenerationSettings.RequiredPrefilledCellCount)
-        => Generate(prefilledCount, SudokuDefinition.Classic);
-
     public (Grid Puzzle, int[,] Solution) Generate(int prefilledCount, SudokuDefinition definition)
     {
         ArgumentNullException.ThrowIfNull(definition);
-        int cellCount = definition.GridSize * definition.GridSize;
-        if (prefilledCount < definition.MinimumPrefilledCellCount || prefilledCount >= cellCount)
-            throw new ArgumentOutOfRangeException(nameof(prefilledCount), $"Prefilled cells for '{definition.Id}' must be between {definition.MinimumPrefilledCellCount} and {cellCount - 1}.");
+        definition.EnsureValidPrefilledCellCount(prefilledCount, nameof(prefilledCount));
 
         for (int attempt = 0; attempt < MaximumGenerationAttempts; attempt++)
         {
@@ -56,7 +51,7 @@ public sealed class PuzzleGenerator : IPuzzleGenerator
                 prefilledMask[r, c] = true;
             }
 
-        int remainingPrefilledCount = definition.GridSize * definition.GridSize;
+        int remainingPrefilledCount = definition.CellCount;
 
         var positions = new List<(int r, int c)>();
         for (int r = 0; r < definition.GridSize; r++)

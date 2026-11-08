@@ -39,8 +39,6 @@ public sealed class SudokuDefinition
             throw new ArgumentException("A definition must provide one unique, non-empty row label per row.", nameof(rowLabels));
         if (minimumPrefilledCellCount is < 1 || minimumPrefilledCellCount >= gridSize * gridSize)
             throw new ArgumentOutOfRangeException(nameof(minimumPrefilledCellCount));
-        if (defaultPrefilledCellCount < minimumPrefilledCellCount || defaultPrefilledCellCount >= gridSize * gridSize)
-            throw new ArgumentOutOfRangeException(nameof(defaultPrefilledCellCount));
 
         Id = id;
         GridSize = gridSize;
@@ -50,6 +48,7 @@ public sealed class SudokuDefinition
         RowLabels = Array.AsReadOnly(rowLabels.ToArray());
         MinimumPrefilledCellCount = minimumPrefilledCellCount;
         DefaultPrefilledCellCount = defaultPrefilledCellCount;
+        EnsureValidPrefilledCellCount(defaultPrefilledCellCount, nameof(defaultPrefilledCellCount));
     }
 
     public string Id { get; }
@@ -60,6 +59,25 @@ public sealed class SudokuDefinition
     public IReadOnlyList<string> RowLabels { get; }
     public int MinimumPrefilledCellCount { get; }
     public int DefaultPrefilledCellCount { get; }
+
+    /// <summary>Total number of cells in the grid.</summary>
+    public int CellCount => GridSize * GridSize;
+
+    /// <summary>The most prefilled cells a puzzle may have: every cell except one, so there is something to solve.</summary>
+    public int MaximumPrefilledCellCount => CellCount - 1;
+
+    /// <summary>The single rule for how many prefilled cells a puzzle of this definition may have.</summary>
+    public bool IsValidPrefilledCellCount(int count) =>
+        count >= MinimumPrefilledCellCount && count <= MaximumPrefilledCellCount;
+
+    public void EnsureValidPrefilledCellCount(int count, string parameterName)
+    {
+        if (!IsValidPrefilledCellCount(count))
+            throw new ArgumentOutOfRangeException(
+                parameterName,
+                count,
+                $"Prefilled cells for '{Id}' must be between {MinimumPrefilledCellCount} and {MaximumPrefilledCellCount}.");
+    }
 
     public bool IsValueInRange(int value) => value >= 1 && value <= GridSize;
 

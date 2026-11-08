@@ -7,7 +7,5 @@ using Sudoku.Core.Domain.Model;
 /// </summary>
 public interface IPuzzleGenerator
 {
-    (Grid Puzzle, int[,] Solution) Generate(int prefilledCount = PuzzleGenerationSettings.RequiredPrefilledCellCount);
-
-    (Grid Puzzle, int[,] Solution) Generate(int prefilledCount, SudokuDefinition definition) => Generate(prefilledCount);
+    (Grid Puzzle, int[,] Solution) Generate(int prefilledCount, SudokuDefinition definition);
 }

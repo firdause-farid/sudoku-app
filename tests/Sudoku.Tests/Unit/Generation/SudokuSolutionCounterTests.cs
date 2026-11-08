@@ -1,4 +1,5 @@
 using Sudoku.Core.Domain.Generation;
+using Sudoku.Core.Domain.Model;
 
 namespace Sudoku.Tests.Unit.Generation;
 
@@ -27,7 +28,7 @@ public class SudokuSolutionCounterTests
         puzzle[0, 0] = null;
         var original = (int?[,])puzzle.Clone();
 
-        int count = _counter.CountSolutions(puzzle);
+        int count = _counter.CountSolutions(puzzle, SudokuDefinition.Classic);
 
         Assert.Equal(1, count);
         AssertGridEqual(original, puzzle);
@@ -39,13 +40,13 @@ public class SudokuSolutionCounterTests
         var puzzle = (int?[,])SolvedGrid.Clone();
         puzzle[0, 0] = null;
 
-        Assert.True(_counter.HasUniqueSolution(puzzle));
+        Assert.True(_counter.HasUniqueSolution(puzzle, SudokuDefinition.Classic));
     }
 
     [Fact]
     public void HasUniqueSolution_ReturnsFalseForPuzzleWithMultipleSolutions()
     {
-        Assert.False(_counter.HasUniqueSolution(new int?[9, 9]));
+        Assert.False(_counter.HasUniqueSolution(new int?[9, 9], SudokuDefinition.Classic));
     }
 
     [Fact]
@@ -56,7 +57,7 @@ public class SudokuSolutionCounterTests
             grid[0, column] = column + 1;
         grid[1, 0] = 1;
 
-        Assert.Equal(0, _counter.CountSolutions(grid));
+        Assert.Equal(0, _counter.CountSolutions(grid, SudokuDefinition.Classic));
     }
 
     [Fact]
@@ -65,7 +66,7 @@ public class SudokuSolutionCounterTests
         var grid = (int?[,])SolvedGrid.Clone();
         grid[0, 0] = grid[0, 1];
 
-        Assert.Equal(0, _counter.CountSolutions(grid));
+        Assert.Equal(0, _counter.CountSolutions(grid, SudokuDefinition.Classic));
     }
 
     [Fact]
@@ -73,7 +74,7 @@ public class SudokuSolutionCounterTests
     {
         var grid = (int?[,])SolvedGrid.Clone();
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => _counter.CountSolutions(grid, limit: 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => _counter.CountSolutions(grid, SudokuDefinition.Classic, limit: 0));
     }
 
     [Fact]
@@ -81,7 +82,7 @@ public class SudokuSolutionCounterTests
     {
         var emptyGrid = new int?[9, 9];
 
-        Assert.Equal(2, _counter.CountSolutions(emptyGrid, limit: 2));
+        Assert.Equal(2, _counter.CountSolutions(emptyGrid, SudokuDefinition.Classic, limit: 2));
     }
 
     private static void AssertGridEqual(int?[,] expected, int?[,] actual)

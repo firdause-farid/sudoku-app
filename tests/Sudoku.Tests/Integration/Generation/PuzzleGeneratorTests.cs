@@ -16,14 +16,14 @@ public class PuzzleGeneratorTests
     {
         var generator = CreateGenerator(123);
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => generator.Generate(prefilledCount));
+        Assert.Throws<ArgumentOutOfRangeException>(() => generator.Generate(prefilledCount, SudokuDefinition.Classic));
     }
 
     [Fact]
     public void Generate_With30PrefilledCells_ReturnsExactly30PrefilledCells()
     {
         var generator = CreateGenerator(123);
-        var (puzzle, _) = generator.Generate(30);
+        var (puzzle, _) = generator.Generate(30, SudokuDefinition.Classic);
 
         int prefilledCount = 0;
         for (int r = 0; r < 9; r++)
@@ -39,7 +39,7 @@ public class PuzzleGeneratorTests
     {
         var generator = CreateGenerator(321);
 
-        var (puzzle, _) = generator.Generate(80);
+        var (puzzle, _) = generator.Generate(80, SudokuDefinition.Classic);
 
         int prefilledCount = 0;
         int emptyCount = 0;
@@ -60,13 +60,13 @@ public class PuzzleGeneratorTests
     public void Generate_PuzzleHasUniqueSolution()
     {
         var generator = CreateGenerator(456);
-        var (puzzle, solution) = generator.Generate(30);
+        var (puzzle, solution) = generator.Generate(30, SudokuDefinition.Classic);
 
-        int count = new SudokuSolutionCounter().CountSolutions(puzzle.ToValueArray(), 2);
+        int count = new SudokuSolutionCounter().CountSolutions(puzzle.ToValueArray(), SudokuDefinition.Classic, 2);
         Assert.Equal(1, count);
 
         // Solution grid itself must be valid.
-        var solutionGrid = new Grid();
+        var solutionGrid = new Grid(SudokuDefinition.Classic);
         for (int r = 0; r < 9; r++)
             for (int c = 0; c < 9; c++)
                 solutionGrid.SetValue(new Position(r, c), solution[r, c]);
@@ -78,7 +78,7 @@ public class PuzzleGeneratorTests
     public void Generate_PrefilledCellsMatchSolution()
     {
         var generator = CreateGenerator(789);
-        var (puzzle, solution) = generator.Generate(30);
+        var (puzzle, solution) = generator.Generate(30, SudokuDefinition.Classic);
 
         for (int r = 0; r < 9; r++)
             for (int c = 0; c < 9; c++)
@@ -96,7 +96,7 @@ public class PuzzleGeneratorTests
         var solutionCounter = new RecordingSolutionCounter();
         var generator = new PuzzleGenerator(new SeededRandomSource(654), solutionGenerator, solutionCounter);
 
-        generator.Generate(80);
+        generator.Generate(80, SudokuDefinition.Classic);
 
         Assert.True(solutionCounter.UniqueSolutionChecks > 0);
         Assert.Equal(1, solutionGenerator.SolutionGenerations);
@@ -105,8 +105,8 @@ public class PuzzleGeneratorTests
     [Fact]
     public void Generate_SameSeedProducesSamePuzzleAndSolution()
     {
-        var first = CreateGenerator(987).Generate(30);
-        var second = CreateGenerator(987).Generate(30);
+        var first = CreateGenerator(987).Generate(30, SudokuDefinition.Classic);
+        var second = CreateGenerator(987).Generate(30, SudokuDefinition.Classic);
 
         for (int row = 0; row < 9; row++)
             for (int column = 0; column < 9; column++)
@@ -127,10 +127,10 @@ public class PuzzleGeneratorTests
 
         public int SolutionGenerations { get; private set; }
 
-        public int[,] GenerateSolution(IRandomSource random)
+        public int[,] GenerateSolution(IRandomSource random, SudokuDefinition definition)
         {
             SolutionGenerations++;
-            return _inner.GenerateSolution(random);
+            return _inner.GenerateSolution(random, definition);
         }
     }
 
@@ -160,10 +160,10 @@ public class PuzzleGeneratorTests
 
         public int UniqueSolutionChecks { get; private set; }
 
-        public bool HasUniqueSolution(int?[,] grid)
+        public bool HasUniqueSolution(int?[,] grid, SudokuDefinition definition)
         {
             UniqueSolutionChecks++;
-            return _inner.HasUniqueSolution(grid);
+            return _inner.HasUniqueSolution(grid, definition);
         }
 
     }

@@ -13,7 +13,7 @@ public class PositionTests
     [InlineData("  c5 ", 2, 4)]
     public void TryParse_ValidPosition_ReturnsExpected(string text, int row, int col)
     {
-        bool parsed = Position.TryParse(text, out Position position, out PositionParseError error);
+        bool parsed = Position.TryParse(text, SudokuDefinition.Classic, out Position position, out PositionParseError error);
 
         Assert.True(parsed);
         Assert.Equal(PositionParseError.None, error);
@@ -22,9 +22,9 @@ public class PositionTests
     }
 
     [Fact]
-    public void ToString_ReturnsExpected()
+    public void FormatPosition_ReturnsRowLabelAndColumnNumber()
     {
-        Assert.Equal("B3", new Position(1, 2).ToString());
+        Assert.Equal("B3", SudokuDefinition.Classic.FormatPosition(new Position(1, 2)));
     }
 
     [Theory]
@@ -37,7 +37,7 @@ public class PositionTests
     [InlineData("A10", PositionParseError.ColumnOutOfRange)]
     public void TryParse_InvalidPosition_ReportsTypedError(string? text, PositionParseError expectedError)
     {
-        bool parsed = Position.TryParse(text, out _, out PositionParseError error);
+        bool parsed = Position.TryParse(text, SudokuDefinition.Classic, out _, out PositionParseError error);
 
         Assert.False(parsed);
         Assert.Equal(expectedError, error);

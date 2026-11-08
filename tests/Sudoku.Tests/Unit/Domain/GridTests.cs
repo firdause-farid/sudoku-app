@@ -8,7 +8,7 @@ public class GridTests
     [Fact]
     public void NewGrid_IsEmptyAndIncomplete()
     {
-        var grid = new Grid();
+        var grid = new Grid(SudokuDefinition.Classic);
         Assert.False(grid.IsComplete());
         for (int r = 0; r < 9; r++)
             for (int c = 0; c < 9; c++)
@@ -18,7 +18,7 @@ public class GridTests
     [Fact]
     public void SetValue_AndClear_WorkOnNonPrefilledCell()
     {
-        var grid = new Grid();
+        var grid = new Grid(SudokuDefinition.Classic);
         var pos = new Position(0, 0);
         grid.SetValue(pos, 5);
         Assert.Equal(5, grid.GetValue(pos));
@@ -33,7 +33,7 @@ public class GridTests
         var prefilledMask = new bool[9, 9];
         values[0, 0] = 5;
         prefilledMask[0, 0] = true;
-        var grid = Grid.FromArrays(values, prefilledMask);
+        var grid = Grid.FromArrays(values, prefilledMask, SudokuDefinition.Classic);
 
         Assert.True(grid.IsPrefilled(new Position(0, 0)));
         Assert.Throws<InvalidOperationException>(() => grid.SetValue(new Position(0, 0), 7));
@@ -42,13 +42,13 @@ public class GridTests
     [Fact]
     public void Cell_PrefilledWithoutValue_Throws()
     {
-        Assert.Throws<ArgumentException>(() => new Cell(null, isPrefilled: true));
+        Assert.Throws<ArgumentException>(() => new Cell(null, isPrefilled: true, definition: SudokuDefinition.Classic));
     }
 
     [Fact]
     public void Clone_IsIndependentCopy()
     {
-        var grid = new Grid();
+        var grid = new Grid(SudokuDefinition.Classic);
         grid.SetValue(new Position(0, 0), 5);
         var clone = grid.Clone();
         clone.Clear(new Position(0, 0));

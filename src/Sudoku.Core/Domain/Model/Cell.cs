@@ -10,9 +10,9 @@ public sealed class Cell
     public int? Value { get; private set; }
     public bool IsPrefilled { get; }
 
-    public Cell(int? value, bool isPrefilled, SudokuDefinition? definition = null)
+    public Cell(int? value, bool isPrefilled, SudokuDefinition definition)
     {
-        _definition = definition ?? SudokuDefinition.Classic;
+        _definition = definition ?? throw new ArgumentNullException(nameof(definition));
         if (value is int number && !_definition.IsValueInRange(number))
             throw new ArgumentOutOfRangeException(nameof(value), $"Cell value must be between 1 and {_definition.GridSize} or null.");
         if (isPrefilled && value is null)

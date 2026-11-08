@@ -18,7 +18,7 @@ public class GamePlaythroughTests
     public void CompletingPuzzle_WaitsForKeyAndStartsAnotherGame()
     {
         const int seed = 42;
-        var (puzzle, solution) = CreateGenerator(seed).Generate(30);
+        var (puzzle, solution) = CreateGenerator(seed).Generate(30, SudokuDefinition.Classic);
 
         var console = new FakeConsole();
         for (int row = 0; row < 9; row++)
@@ -28,7 +28,7 @@ public class GamePlaythroughTests
 
         var random = new SeededRandomSource(seed);
         var generator = new PuzzleGenerator(random, new SudokuSolutionGenerator(), new SudokuSolutionCounter());
-        var gameFactory = new SudokuGameFactory(generator, new SudokuValidator(), random);
+        var gameFactory = new SudokuGameFactory(generator, new SudokuValidator(), random, SudokuDefinition.Classic);
         var renderer = new GridRenderer(new PlainGridStyle());
         var engine = new ConsoleGameRunner(
             console,

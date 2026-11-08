@@ -8,9 +8,6 @@ namespace Sudoku.Core.Domain.Generation;
 /// </summary>
 public sealed class SudokuSolutionGenerator : ISudokuSolutionGenerator
 {
-    public int[,] GenerateSolution(IRandomSource random)
-        => GenerateSolution(random, SudokuDefinition.Classic);
-
     public int[,] GenerateSolution(IRandomSource random, SudokuDefinition definition)
     {
         ArgumentNullException.ThrowIfNull(random);

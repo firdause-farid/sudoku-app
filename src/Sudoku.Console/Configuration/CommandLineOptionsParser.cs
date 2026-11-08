@@ -101,11 +101,10 @@ internal sealed class CommandLineOptionsParser(Func<SudokuDefinitionCatalog> loa
             return false;
         }
 
-        int maximum = definition.GridSize * definition.GridSize - 1;
-        if (parsed < definition.MinimumPrefilledCellCount || parsed > maximum)
+        if (!definition.IsValidPrefilledCellCount(parsed))
         {
             error = UserMessages.PrefilledCellsOutOfRange(
-                PrefilledCellsOption, definition.MinimumPrefilledCellCount, maximum, definition.Id);
+                PrefilledCellsOption, definition.MinimumPrefilledCellCount, definition.MaximumPrefilledCellCount, definition.Id);
             return false;
         }
 

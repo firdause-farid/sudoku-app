@@ -20,17 +20,15 @@ public sealed class SudokuGameFactory : ISudokuGameFactory
         IPuzzleGenerator puzzleGenerator,
         IValidator validator,
         IRandomSource random,
-        SudokuDefinition? definition = null,
+        SudokuDefinition definition,
         int? prefilledCount = null)
     {
         _puzzleGenerator = puzzleGenerator ?? throw new ArgumentNullException(nameof(puzzleGenerator));
         _validator = validator ?? throw new ArgumentNullException(nameof(validator));
         _random = random ?? throw new ArgumentNullException(nameof(random));
-        _definition = definition ?? SudokuDefinition.Classic;
+        _definition = definition ?? throw new ArgumentNullException(nameof(definition));
         _prefilledCount = prefilledCount ?? _definition.DefaultPrefilledCellCount;
-        int cellCount = _definition.GridSize * _definition.GridSize;
-        if (_prefilledCount < _definition.MinimumPrefilledCellCount || _prefilledCount >= cellCount)
-            throw new ArgumentOutOfRangeException(nameof(prefilledCount), "Prefilled-cell count must meet the definition's minimum and leave at least one empty cell.");
+        _definition.EnsureValidPrefilledCellCount(_prefilledCount, nameof(prefilledCount));
     }
 
     public ISudokuGame Create()

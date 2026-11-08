@@ -8,7 +8,5 @@ namespace Sudoku.Core.Domain.Generation;
 /// </summary>
 public interface ISudokuSolutionGenerator
 {
-    int[,] GenerateSolution(IRandomSource random);
-
-    int[,] GenerateSolution(IRandomSource random, SudokuDefinition definition) => GenerateSolution(random);
+    int[,] GenerateSolution(IRandomSource random, SudokuDefinition definition);
 }

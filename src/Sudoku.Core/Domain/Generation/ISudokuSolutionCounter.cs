@@ -7,7 +7,5 @@ namespace Sudoku.Core.Domain.Generation;
 /// </summary>
 public interface ISudokuSolutionCounter
 {
-    bool HasUniqueSolution(int?[,] grid);
-
-    bool HasUniqueSolution(int?[,] grid, SudokuDefinition definition) => HasUniqueSolution(grid);
+    bool HasUniqueSolution(int?[,] grid, SudokuDefinition definition);
 }

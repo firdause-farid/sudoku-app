@@ -10,18 +10,10 @@ public sealed class SudokuSolutionCounter : ISudokuSolutionCounter
     private const int UniquenessSolutionLimit = 2;
     private const int UniqueSolutionCount = 1;
 
-    public bool HasUniqueSolution(int?[,] grid)
-    {
-        return HasUniqueSolution(grid, SudokuDefinition.Classic);
-    }
-
     public bool HasUniqueSolution(int?[,] grid, SudokuDefinition definition) =>
-        CountSolutions(grid, UniquenessSolutionLimit, definition) == UniqueSolutionCount;
+        CountSolutions(grid, definition, UniquenessSolutionLimit) == UniqueSolutionCount;
 
-    public int CountSolutions(int?[,] grid, int limit = UniquenessSolutionLimit)
-        => CountSolutions(grid, limit, SudokuDefinition.Classic);
-
-    public int CountSolutions(int?[,] grid, int limit, SudokuDefinition definition)
+    public int CountSolutions(int?[,] grid, SudokuDefinition definition, int limit = UniquenessSolutionLimit)
     {
         ArgumentNullException.ThrowIfNull(grid);
         ArgumentNullException.ThrowIfNull(definition);

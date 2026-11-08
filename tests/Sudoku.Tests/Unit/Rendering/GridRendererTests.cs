@@ -11,7 +11,7 @@ public class GridRendererTests
     [Fact]
     public void Render_EmptyGrid_MatchesFormat()
     {
-        var grid = new Grid();
+        var grid = new Grid(SudokuDefinition.Classic);
         var expectedLines = new[] { $"    {UserMessages.GridHeader}" }
             .Concat(Enumerable.Range(0, 9).Select(row =>
                 $"  {(char)('A' + row)} {string.Join(" ", Enumerable.Repeat(UserMessages.EmptyCell, 9))}"));
@@ -27,7 +27,7 @@ public class GridRendererTests
         values[0, 0] = 5;
         prefilledMask[0, 0] = true;
         values[0, 1] = 6;
-        var grid = Grid.FromArrays(values, prefilledMask);
+        var grid = Grid.FromArrays(values, prefilledMask, SudokuDefinition.Classic);
 
         string rendered = new GridRenderer(new PlainGridStyle()).Render(grid);
 
@@ -43,7 +43,7 @@ public class GridRendererTests
         values[0, 0] = 5;
         prefilledMask[0, 0] = true;
         values[0, 1] = 6;
-        var grid = Grid.FromArrays(values, prefilledMask);
+        var grid = Grid.FromArrays(values, prefilledMask, SudokuDefinition.Classic);
 
         string rendered = new GridRenderer(new EnhancedGridStyle()).Render(grid);
 

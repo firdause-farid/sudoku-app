@@ -9,7 +9,7 @@ public class SudokuValidatorTests
     [Fact]
     public void EmptyGrid_IsValid()
     {
-        var result = new SudokuValidator().Validate(new Grid());
+        var result = new SudokuValidator().Validate(new Grid(SudokuDefinition.Classic));
         Assert.True(result.IsValid);
     }
 
@@ -20,7 +20,7 @@ public class SudokuValidatorTests
         var prefilledMask = new bool[9, 9];
         values[0, 0] = 3;
         values[0, 1] = 3;
-        var grid = Grid.FromArrays(values, prefilledMask);
+        var grid = Grid.FromArrays(values, prefilledMask, SudokuDefinition.Classic);
 
         var result = new SudokuValidator().Validate(grid);
         Assert.False(result.IsValid);
@@ -34,7 +34,7 @@ public class SudokuValidatorTests
         var prefilledMask = new bool[9, 9];
         values[0, 0] = 5;
         values[1, 0] = 5;
-        var grid = Grid.FromArrays(values, prefilledMask);
+        var grid = Grid.FromArrays(values, prefilledMask, SudokuDefinition.Classic);
 
         var result = new SudokuValidator().Validate(grid);
         Assert.False(result.IsValid);
@@ -48,7 +48,7 @@ public class SudokuValidatorTests
         var prefilledMask = new bool[9, 9];
         values[0, 0] = 8;
         values[1, 1] = 8;
-        var grid = Grid.FromArrays(values, prefilledMask);
+        var grid = Grid.FromArrays(values, prefilledMask, SudokuDefinition.Classic);
 
         var result = new SudokuValidator().Validate(grid);
         Assert.False(result.IsValid);
@@ -79,7 +79,7 @@ public class SudokuValidatorTests
                 values[r, c] = solution[r, c];
                 prefilledMask[r, c] = true;
             }
-        var grid = Grid.FromArrays(values, prefilledMask);
+        var grid = Grid.FromArrays(values, prefilledMask, SudokuDefinition.Classic);
         var result = new SudokuValidator().Validate(grid);
         Assert.True(result.IsValid);
     }

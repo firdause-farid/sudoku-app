@@ -12,7 +12,7 @@ public class SudokuGameTests
     private static (SudokuGame game, Grid puzzle) CreateGame(int seed = 1)
     {
         var (puzzle, solution) = new PuzzleGenerator(
-            new SeededRandomSource(seed), new SudokuSolutionGenerator(), new SudokuSolutionCounter()).Generate(30);
+            new SeededRandomSource(seed), new SudokuSolutionGenerator(), new SudokuSolutionCounter()).Generate(30, SudokuDefinition.Classic);
         var game = new SudokuGame(puzzle, solution, new SudokuValidator(), new SeededRandomSource(seed));
         return (game, puzzle);
     }
@@ -186,7 +186,7 @@ public class SudokuGameTests
     [Fact]
     public void Constructor_RejectsSolutionWithWrongDimensions()
     {
-        var puzzle = new Grid();
+        var puzzle = new Grid(SudokuDefinition.Classic);
         var exception = Assert.Throws<ArgumentException>(() =>
             new SudokuGame(puzzle, new int[8, 9], new SudokuValidator(), new SeededRandomSource(1)));
 
@@ -216,7 +216,7 @@ public class SudokuGameTests
     [Fact]
     public void Constructor_RejectsSolutionWithRuleViolations()
     {
-        var puzzle = new Grid();
+        var puzzle = new Grid(SudokuDefinition.Classic);
         var (_, solution) = CreatePuzzleWithOneEmptyCell();
         solution[0, 0] = solution[0, 1];
 
@@ -300,7 +300,7 @@ public class SudokuGameTests
                     prefilledMask[row, column] = true;
                 }
 
-        return (Grid.FromArrays(values, prefilledMask), solution);
+        return (Grid.FromArrays(values, prefilledMask, SudokuDefinition.Classic), solution);
     }
 
     private static Position FindEmpty(IGridView grid)
